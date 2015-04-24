@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -11,6 +12,7 @@ using System.Threading.Tasks;
 using MiscUtil.Conversion;
 using NetMQ;
 using NetMQ.Sockets;
+using NetMQ.zmq;
 using RoyNet.Engine;
 using RoyNet.GameServer;
 using RoyNet.GameServer.Entity;
@@ -29,18 +31,19 @@ namespace RoyNet.GameServer
         private readonly ConcurrentQueue<IMessageEntity> _msgsWaiting = new ConcurrentQueue<IMessageEntity>();
         private readonly Dictionary<string, RequestFactor> _commands = new Dictionary<string, RequestFactor>();
         public string Address { get; private set; }
+        public bool IsRunning { get; private set; }
 
         public Server(string address)
         {
-            _mainThread = new TaskThread(MainLoop);
-            _sendThread = new TaskThread(Send);
-            _receThread = new TaskThread(Receive);
+            _mainThread = new TaskThread("执行", MainLoop);
+            _sendThread = new TaskThread("发送", Send);
+            _receThread = new TaskThread("接收", Receive);
             Address = address;
             _netMqContext = NetMQContext.Create();
             _pullSocket = _netMqContext.CreatePullSocket();
             _pushSocket = _netMqContext.CreatePushSocket();
         }
-
+        
         public void Open()
         {
             MethodInfo methodSerializer = typeof(ProtoBuf.Serializer).GetMethod("Deserialize");
@@ -67,10 +70,11 @@ namespace RoyNet.GameServer
             }
 
             _pullSocket.Bind(Address + "in");
-            _pushSocket.Bind(Address + "out");
+            _pushSocket.Connect(Address + "out");
             _mainThread.Start();
             _sendThread.Start();
             _receThread.Start();
+            IsRunning = true;
         }
 
         void Send()
@@ -79,6 +83,10 @@ namespace RoyNet.GameServer
 
         void Receive()
         {
+            if (!_pullSocket.HasIn)
+            {
+                return;
+            }
             byte[] data = _pullSocket.Receive();
             int offset = 0;
             var converter = EndianBitConverter.Big;
@@ -122,20 +130,24 @@ namespace RoyNet.GameServer
         public void Close()
         {
             Dispose();
+            IsRunning = false;
         }
 
         public void Dispose()
         {
+            if (!IsRunning)
+                return;
+
             _mainThread.Stop();
             _sendThread.Stop();
             _receThread.Stop();
-            //_pullSocket.Disconnect(Address);
-            //_pushSocket.Disconnect(Address);
-            _pullSocket.Close();
+
+            _pullSocket.Unbind(Address + "in");
             _pullSocket.Dispose();
-            _pushSocket.Close();
+            _pushSocket.Disconnect(Address + "out");
             _pushSocket.Dispose();
             _netMqContext.Dispose();
+            IsRunning = false;
         }
     }
 

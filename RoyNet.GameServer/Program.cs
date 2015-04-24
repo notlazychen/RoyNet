@@ -31,9 +31,10 @@ namespace RoyNet.GameServer
                         Console.WriteLine("unknown command! ");
                     }
                 }
-                gameServer.Close();
-                Console.WriteLine("服务器关闭，按回车退出");
+                //gameServer.Close();
             }
+            Console.WriteLine("服务器关闭，按回车退出");
+            Console.ReadLine();
         }
     }
 }

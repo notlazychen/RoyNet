@@ -49,10 +49,13 @@ namespace Roynet.Test
             var stream = client.GetStream();
             while (stream.CanWrite)
             {
+                Console.WriteLine("请输入你想发送的话：");
+                string text = Console.ReadLine();
+
                 var converter = EndianBitConverter.Big;
 
                 var msm = new MemoryStream();
-                Serializer.Serialize(msm, new C2S_Chat_Send(){Text = "你好啊"});
+                Serializer.Serialize(msm, new C2S_Chat_Send(){Text = text});
                 var body = msm.ToArray();
                 int length = body.Length;
 
@@ -66,8 +69,6 @@ namespace Roynet.Test
                 offset += 4;
                 Buffer.BlockCopy(body, 0, data, offset, length);
                 stream.Write(data, 0, data.Length);
-                Console.WriteLine("发了一行");
-                Console.ReadLine();
             }
             //2个没啥用，1个指定服务器，1个gatecmd，2个length，4个gamecmd
         }

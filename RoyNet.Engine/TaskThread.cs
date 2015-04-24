@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,10 +15,12 @@ namespace RoyNet.Engine
         private readonly Action _onExecute;
         public bool IsRunning { get; private set; }
         public event EventHandler<EventArgs> Started;
-        public event EventHandler<EventArgs> Stoped;
-        public TaskThread(Action onExecute)
+        public string Name { get; private set; }
+        //public event EventHandler<EventArgs> Stoped;
+        public TaskThread(string name, Action onExecute)
         {
             _onExecute = onExecute;
+            Name = name;
         }
 
         public void Start()
@@ -28,12 +31,20 @@ namespace RoyNet.Engine
             }
             _threadToken = new CancellationTokenSource();
             _thread = new Thread(Loop);
+            _thread.Name = Name;
             _thread.Start();
+            Console.WriteLine("线程[{0}]开启", Name);
         }
 
         public void Stop()
         {
+            Console.WriteLine("线程[{0}]开始关闭", Name);
             _threadToken.Cancel();
+            _thread.Join();
+            _thread = null;
+            _threadToken = null;
+            IsRunning = false;
+            Console.WriteLine("线程[{0}]已关闭", Name);
         }
 
         private void Loop()
@@ -42,13 +53,18 @@ namespace RoyNet.Engine
             OnStarted();
             while (!_threadToken.IsCancellationRequested)
             {
-                _onExecute();
+                try
+                {
+                    _onExecute();
+                }
+                catch (Exception ex)
+                {
+                    //todo: log file
+                }
                 Thread.Sleep(1);
             }
-            _thread = null;
-            _threadToken = null;
-            IsRunning = false;
-            OnStoped();
+            //Console.WriteLine("[{0}]线程关闭中", Thread.CurrentThread.Name);
+            //OnStoped();
         }
 
         protected virtual void OnStarted()
@@ -57,10 +73,10 @@ namespace RoyNet.Engine
             if (handler != null) handler(this, EventArgs.Empty);
         }
 
-        protected virtual void OnStoped()
-        {
-            var handler = Stoped;
-            if (handler != null) handler(this, EventArgs.Empty);
-        }
+        //protected virtual void OnStoped()
+        //{
+        //    var handler = Stoped;
+        //    if (handler != null) handler(this, EventArgs.Empty);
+        //}
     }
 }
