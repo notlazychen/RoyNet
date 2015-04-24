@@ -47,15 +47,15 @@ namespace Roynet.Test
             TcpClient client = new TcpClient();
             client.Connect("127.0.0.1", 2020);
             var stream = client.GetStream();
+            Rece(stream);
             while (stream.CanWrite)
             {
-                Console.WriteLine("请输入你想发送的话：");
                 string text = Console.ReadLine();
 
                 var converter = EndianBitConverter.Big;
 
                 var msm = new MemoryStream();
-                Serializer.Serialize(msm, new C2S_Chat_Send(){Text = text});
+                Serializer.Serialize(msm, new Chat_Send(){Text = text});
                 var body = msm.ToArray();
                 int length = body.Length;
 
@@ -65,12 +65,39 @@ namespace Roynet.Test
                 offset += 4;
                 converter.CopyBytes((ushort)(length + 4), data, offset);
                 offset += 2;
-                converter.CopyBytes((int)CMD_Chat.C2S_Send, data, offset);
+                converter.CopyBytes((int)CMD_Chat.Send, data, offset);
                 offset += 4;
                 Buffer.BlockCopy(body, 0, data, offset, length);
                 stream.Write(data, 0, data.Length);
             }
             //2个没啥用，1个指定服务器，1个gatecmd，2个length，4个gamecmd
+        }
+
+        static void Rece(NetworkStream stream)
+        {
+            byte[] recedata = new byte[1024];
+            stream.BeginRead(recedata, 0, recedata.Length, (a) =>
+            {
+                int receLength = stream.EndRead(a);
+                var converter = EndianBitConverter.Big;
+                int offset = 0;
+                while (offset < receLength + 2)
+                {
+                    int length = converter.ToInt16(recedata, offset);
+                    offset += 2;
+                    int cmd = converter.ToInt32(recedata, offset);
+                    offset += 4;
+                    using (var receMs = new MemoryStream())
+                    {
+                        receMs.Write(recedata, offset, length - 4);
+                        receMs.Position = 0;
+                        var package = Serializer.Deserialize<Chat_Send>(receMs);
+                        Console.WriteLine("{0}", package.Text);
+                        offset += length;
+                    }
+                }
+                Rece(stream);
+            }, null);
         }
     }
 }

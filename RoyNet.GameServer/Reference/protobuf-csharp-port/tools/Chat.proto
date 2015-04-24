@@ -1,0 +1,12 @@
+enum CMD_Chat{
+	C2S_Text = 0x10000001;
+	S2C_Text = 0x20000001;
+}
+
+message Chat_C2S_Text {
+  required string Text = 1;
+}
+
+message Chat_S2C_Text {
+  required string Text = 1;
+}

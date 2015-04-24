@@ -8,7 +8,12 @@ namespace RoyNet.GameServer
 {
     public class Player
     {
+        public Server GameServer { get; private set; }
         public int UserID { get; private set; }
 
+        public void Send<T>(int cmd, T package)
+        {
+            GameServer.Send(this,cmd, package);
+        }
     }
 }

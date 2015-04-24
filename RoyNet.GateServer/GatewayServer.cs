@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using MiscUtil.Conversion;
 using NetMQ;
 using NetMQ.Sockets;
 using SuperSocket.SocketBase;
@@ -16,6 +18,8 @@ namespace RoyNet.GateServer
         private readonly NetMQContext _netMqContext;
         private readonly PullSocket _pullSocket;
         private readonly PushSocket _pushSocket;
+        private CancellationTokenSource _cancelToken;
+        private Thread _receThread;
         public string GameServerAddress { get; private set; }
         public GatewayServer(): base(new GatewayReceiveFilterFactory()) // 7 parts but 8 separators
         {
@@ -32,9 +36,47 @@ namespace RoyNet.GateServer
 
         public override bool Start()
         {
-            _pullSocket.Connect(GameServerAddress+"out");
+            _pullSocket.Bind(GameServerAddress+"out");
             _pushSocket.Connect(GameServerAddress+"in");
+            _receThread = new Thread(ReceiveGameServer);
+            _cancelToken = new CancellationTokenSource();
+            _receThread.Start();
             return base.Start();
+        }
+
+        void ReceiveGameServer()
+        {
+            while (!_cancelToken.IsCancellationRequested)
+            {
+                Thread.Sleep(1);
+                if (!_pullSocket.HasIn)
+                    continue;
+                byte[] data = _pullSocket.Receive();
+                var converter = EndianBitConverter.Big;
+                int offset = 0;
+                int userCount = converter.ToInt32(data, offset);
+                offset += 4;
+                var sessions = new List<PlayerSession>();
+                if (userCount == 0)
+                {
+                    //群发
+                    sessions.AddRange(GetAllSessions());
+                }
+                else
+                {
+                    for (int i = 0; i < userCount; i++)
+                    {
+                        int userID = converter.ToInt32(data, offset);
+                        offset += 4;
+                        sessions.AddRange(this.GetSessions(s => s.UserID == userID));
+                    }
+                }
+                var package = new ArraySegment<byte>(data, offset, data.Length - offset);
+                foreach (PlayerSession session in sessions)
+                {
+                    session.Send(package);
+                }
+            }
         }
 
         protected override void OnNewSessionConnected(PlayerSession session)
@@ -55,11 +97,6 @@ namespace RoyNet.GateServer
         public void Push(byte[] data)
         {
             _pushSocket.Send(data);
-        }
-
-        public byte[] Pull()
-        {
-            return _pullSocket.Receive();
         }
     }
 }

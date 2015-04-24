@@ -13,9 +13,9 @@
 namespace RoyNet.GameServer.Entity
 {
     [global::System.Serializable, global::ProtoBuf.ProtoContract(Name=@"C2S_Chat_Send")]
-    public partial class C2S_Chat_Send : global::ProtoBuf.IExtensible
+    public partial class Chat_Send : global::ProtoBuf.IExtensible
     {
-      public C2S_Chat_Send() {}
+      public Chat_Send() {}
       
     private string _Text;
     [global::ProtoBuf.ProtoMember(1, IsRequired = true, Name=@"Text", DataFormat = global::ProtoBuf.DataFormat.Default)]
@@ -31,7 +31,7 @@ namespace RoyNet.GameServer.Entity
   
     public enum CMD_Chat
     {
-      C2S_Send = 268435456
+      Send = 268435456
     }
   
 }

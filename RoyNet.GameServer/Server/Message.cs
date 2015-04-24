@@ -30,7 +30,7 @@ namespace RoyNet.GameServer
         /// </summary>
         /// <param name="cmd"></param>
         /// <param name="entity"></param>
-        /// <param name="users">-1表示全部玩家</param>
+        /// <param name="users">null表示全部玩家</param>
         public Message(int cmd, T entity, params int[] users)
         {
             _users = users;
@@ -38,12 +38,12 @@ namespace RoyNet.GameServer
             Entity = entity;
         }
 
-        public ArraySegment<byte> Serialize()
+        public byte[] Serialize()
         {
             return InternalSerialize();
         }
 
-        private ArraySegment<byte> InternalSerialize()
+        private byte[] InternalSerialize()
         {
             byte[] buffEntity;
             using (var stream = new MemoryStream())
@@ -54,15 +54,21 @@ namespace RoyNet.GameServer
             var entityLen = buffEntity.Length;
 
             var converter = EndianBitConverter.Big;
-            var data = new byte[4 + _users.Length * 4 + 2 + 4 + buffEntity.Length];
+            int userscount = 0;
+            if (_users != null)
+                userscount = _users.Length;
+            var data = new byte[4 + userscount*4 + 2 + 4 + buffEntity.Length];
             var offset = 0;
             //首先是头
-            converter.CopyBytes(_users.Count(), data, 0);
+            converter.CopyBytes(userscount, data, 0);
             offset += 4;
-            foreach (var user in _users)
+            if (_users != null)
             {
-                converter.CopyBytes(user, data, offset);
-                offset += 4;
+                foreach (var user in _users)
+                {
+                    converter.CopyBytes(user, data, offset);
+                    offset += 4;
+                }
             }
 
             //然后是Body
@@ -71,7 +77,7 @@ namespace RoyNet.GameServer
             converter.CopyBytes(CommandID, data, offset);
             offset += 4;
             Buffer.BlockCopy(buffEntity, 0, data, offset, entityLen);
-            return new ArraySegment<byte>(data, 0, offset + entityLen);
+            return data;
         }
         /*
          * 返回客户端报文格式：

@@ -7,16 +7,20 @@ using RoyNet.GameServer.Entity;
 
 namespace RoyNet.GameServer.Logic.Chat
 {
-    public class ChatCommand: CommandBase<C2S_Chat_Send>
+    public class ChatCommand: CommandBase<Chat_Send>
     {
         public override string Name
         {
-            get { return CMD_Chat.C2S_Send.ToString("D"); }
+            get { return CMD_Chat.Send.ToString("D"); }
         }
 
-        public override void OnExecute(Player player, C2S_Chat_Send msg)
+        public override void OnExecute(Player player, Chat_Send msg)
         {
             Console.WriteLine(msg.Text);
+            Server.Current.BroadcastAll((int)CMD_Chat.Send, new Chat_Send()
+            {
+                Text = "我收到了哦，"+ msg.Text
+            });
         }
     }
 }

@@ -19,29 +19,33 @@ using RoyNet.GameServer.Entity;
 
 namespace RoyNet.GameServer
 {
-    class Server : IDisposable
+    public class Server : IDisposable
     {
+        public static Server Current { get; private set; }
         private readonly NetMQContext _netMqContext;
         private readonly PullSocket _pullSocket;
         private readonly PushSocket _pushSocket;
         private readonly TaskThread _mainThread;
         private readonly TaskThread _sendThread;
         private readonly TaskThread _receThread;
-        private readonly ConcurrentQueue<Action> _actionsWaiting = new ConcurrentQueue<Action>();
+        private readonly ConcurrentQueue<Tuple<int,CommandBase, object>> _actionsWaiting = new ConcurrentQueue<Tuple<int, CommandBase, object>>();
         private readonly ConcurrentQueue<IMessageEntity> _msgsWaiting = new ConcurrentQueue<IMessageEntity>();
         private readonly Dictionary<string, RequestFactor> _commands = new Dictionary<string, RequestFactor>();
         public string Address { get; private set; }
         public bool IsRunning { get; private set; }
+        
+        private readonly Dictionary<int, Player> _allPlayers = new Dictionary<int, Player>();
 
         public Server(string address)
         {
             _mainThread = new TaskThread("执行", MainLoop);
-            _sendThread = new TaskThread("发送", Send);
-            _receThread = new TaskThread("接收", Receive);
+            _sendThread = new TaskThread("发送", OnSend);
+            _receThread = new TaskThread("接收", OnReceive);
             Address = address;
             _netMqContext = NetMQContext.Create();
             _pullSocket = _netMqContext.CreatePullSocket();
             _pushSocket = _netMqContext.CreatePushSocket();
+            Current = this;
         }
         
         public void Open()
@@ -77,11 +81,17 @@ namespace RoyNet.GameServer
             IsRunning = true;
         }
 
-        void Send()
+        void OnSend()
         {
+            IMessageEntity msg;
+            if (_msgsWaiting.TryDequeue(out msg))
+            {
+                byte[] data = msg.Serialize();
+                _pushSocket.Send(data);
+            }
         }
 
-        void Receive()
+        void OnReceive()
         {
             if (!_pullSocket.HasIn)
             {
@@ -99,15 +109,12 @@ namespace RoyNet.GameServer
             RequestFactor factor;
             if (_commands.TryGetValue(cmdName.ToString("D"), out factor))
             {
-                using (MemoryStream stream = new MemoryStream())
+                using (var stream = new MemoryStream())
                 {
                     stream.Write(data, offset, length - 4);
                     stream.Position = 0;
                     var package = factor.CreatePackageMethod.Invoke(null, new object[] { stream });
-                    _actionsWaiting.Enqueue(() =>
-                    {
-                        factor.Command.Execute(null, package);
-                    });
+                    _actionsWaiting.Enqueue(new Tuple<int, CommandBase, object>(userID,factor.Command, package));
                 }
             }
             else
@@ -120,13 +127,38 @@ namespace RoyNet.GameServer
         void MainLoop()
         {
             //todo: 超时判断
-            Action act;
-            while (_actionsWaiting.TryDequeue(out act))
+            Tuple<int, CommandBase, object> tuple;
+            while (_actionsWaiting.TryDequeue(out tuple))
             {
-                act.Invoke();
+                //Player p = _allPlayers[tuple.Item1];
+                tuple.Item2.Execute(null, tuple.Item3);
             }
         }
-        
+
+        /// <summary>
+        /// 发送给指定玩家报文
+        /// </summary>
+        public void Send<T>(Player player, int cmd, T package)
+        {
+            _msgsWaiting.Enqueue(new Message<T>(cmd, package, player.UserID));
+        }
+
+        /// <summary>
+        /// 广播指定玩家
+        /// </summary>
+        public void Broadcast<T>(IEnumerable<Player> players, int cmd, T package)
+        {
+            _msgsWaiting.Enqueue(new Message<T>(cmd, package, players.Select(p=>p.UserID).ToArray()));
+        }
+
+        /// <summary>
+        /// 广播全体玩家
+        /// </summary>
+        public void BroadcastAll<T>(int cmd, T package)
+        {
+            _msgsWaiting.Enqueue(new Message<T>(cmd, package, null));
+        }
+
         public void Close()
         {
             Dispose();
