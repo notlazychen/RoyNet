@@ -6,7 +6,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Dapper;
 using Nancy;
-using Npgsql;
 
 namespace RoyNet.LoginServer
 {
@@ -16,9 +15,9 @@ namespace RoyNet.LoginServer
         {
             Get["/{uname}/{pwd}"] = p =>
             {
-                using (NpgsqlConnection conn = new NpgsqlConnection(ConfigurationManager.ConnectionStrings["db"].ConnectionString))
+                using (var conn = ConnectionProvider.Connection)
                 {
-                    string id = conn.Query<string>("select id from t_user where username=@username and password=md5(@password)", new
+                    string id = conn.Query<string>("select uid from t_user where username=@username and password=md5(@password)", new
                     {
                         username = p.uname,
                         password = p.pwd
