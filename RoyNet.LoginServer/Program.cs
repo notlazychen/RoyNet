@@ -13,7 +13,7 @@ namespace RoyNet.LoginServer
         private static NancyHost Host;
         static void Main(string[] args)
         {
-            string url = ConfigurationManager.AppSettings["Url"];
+            string url = Config.HostUrl;
             Host = new NancyHost(new Uri(url));
             Host.Start();
             Console.WriteLine("你的服务器已经启动，访问地址是 {0}", url);
