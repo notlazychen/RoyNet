@@ -188,11 +188,5 @@ namespace RoyNet.GameServer
         public CommandBase Command;
         public Type PackageType;
         public MethodInfo CreatePackageMethod;
-
-        //public object Serializer(MemoryStream stream)
-        //{
-        //    MethodInfo func = createMethod.MakeGenericMethod(PackageType);
-        //    return func.Invoke(null, new object[] { stream });
-        //}
     }
 }

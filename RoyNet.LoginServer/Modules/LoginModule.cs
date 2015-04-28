@@ -70,7 +70,7 @@ namespace RoyNet.LoginServer
                 {
                     socket.Connect(Config.GateAddress);
                     string msg = string.Format("{0},{1}", uid, token);
-                    socket.Send(msg);
+                    socket.Send(msg, Encoding.UTF8);
                     socket.Receive();//just wait
                 }
             }
