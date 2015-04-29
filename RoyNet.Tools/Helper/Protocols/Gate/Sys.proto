@@ -1,0 +1,17 @@
+enum CMD_G2G {
+	ToGameLogin 	 = 0x00000001;
+	ToGameLogOut 	 = 0x00000002;
+	ToGateDisconnect = 0x00000003;
+}
+
+message G2G_ToGameLogin {
+	required string UserName=1;
+}
+
+message G2G_ToGameLogOut {
+	optional string Reason = 1;
+}
+
+message G2G_ToGateDisconnect {
+	optional string Reason = 1;
+}

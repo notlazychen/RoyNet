@@ -16,7 +16,7 @@ namespace RoyNet.GameServer
     /// </summary>
     public class Message<T> : IMessageEntity<T>
     {
-        private readonly int[] _users;
+        private readonly long[] _netHandles;
 
         public int CommandID { get; private set; }
         public T Entity { get; set; }
@@ -30,10 +30,10 @@ namespace RoyNet.GameServer
         /// </summary>
         /// <param name="cmd"></param>
         /// <param name="entity"></param>
-        /// <param name="users">null表示全部玩家</param>
-        public Message(int cmd, T entity, params int[] users)
+        /// <param name="netHandles">null表示全部玩家</param>
+        public Message(int cmd, T entity, params long[] netHandles)
         {
-            _users = users;
+            _netHandles = netHandles;
             CommandID = cmd;
             Entity = entity;
         }
@@ -55,19 +55,19 @@ namespace RoyNet.GameServer
 
             var converter = EndianBitConverter.Big;
             int userscount = 0;
-            if (_users != null)
-                userscount = _users.Length;
+            if (_netHandles != null)
+                userscount = _netHandles.Length;
             var data = new byte[4 + userscount*4 + 2 + 4 + buffEntity.Length];
             var offset = 0;
             //首先是头
             converter.CopyBytes(userscount, data, 0);
             offset += 4;
-            if (_users != null)
+            if (_netHandles != null)
             {
-                foreach (var user in _users)
+                foreach (var netHandle in _netHandles)
                 {
-                    converter.CopyBytes(user, data, offset);
-                    offset += 4;
+                    converter.CopyBytes(netHandle, data, offset);
+                    offset += 8;
                 }
             }
 
@@ -82,7 +82,7 @@ namespace RoyNet.GameServer
         /*
          * 返回客户端报文格式：
          * 4字节指向客户端数量（在网关处卸掉）
-         * 根据客户端数量取走头(在网关处卸掉)
+         * 根据客户端数量取走头(在网关处卸掉)x8long
          * 4字节CommandID
          * 2字节Body长度
          * Body（proto-buf）

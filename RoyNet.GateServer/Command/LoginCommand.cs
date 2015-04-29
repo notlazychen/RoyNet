@@ -1,8 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
+using ProtoBuf;
+using RoyNet.GateServer.Entity;
+using SuperSocket.SocketBase;
 using SuperSocket.SocketBase.Command;
 using SuperSocket.SocketBase.Protocol;
 
@@ -20,25 +26,42 @@ namespace RoyNet.GateServer
 
         public void ExecuteCommand(PlayerSession session, BinaryRequestInfo requestInfo)
         {
-            //todo: 下面是假象，完成登录验证
-            var bs = Guid.NewGuid().ToByteArray();
-            bool same = true;
-            if (requestInfo.Body.Length == bs.Length)
+            string token = Encoding.UTF8.GetString(requestInfo.Body);
+            string url = string.Format("{0}check/{1}", session.Server.LoginServerAddress, token);
+            var request = WebRequest.Create(url);
+            var response = request.GetResponse();
+            var stream = response.GetResponseStream();
+            byte[] data = new byte[64];
+            if (stream != null && stream.CanRead)
             {
-                if (bs.Where((t, i) => t != requestInfo.Body[i]).Any())
+                int length = stream.Read(data, 0, 64);
+                string result = Encoding.UTF8.GetString(data, 0, length);
+                var lr = JsonConvert.DeserializeObject<LoginResult>(result);
+                if (lr.ResultCode == 0)
                 {
-                    same = false;
+                    session.Login();
+                    var package = new G2G_ToGameLogin()
+                    {
+                        UserName = lr.UserName
+                    };
+                    using (var ms = new MemoryStream())
+                    {
+                        Serializer.Serialize(ms, package);
+                        var sendData = ms.ToArray();
+                        session.Server.Push2GameServer(session, sendData);
+                    }
+                }
+                else
+                {
+                    session.Close(CloseReason.ServerClosing);
                 }
             }
-            else
-            {
-                same = false;
-            }
-            if (same)
-            {
-                session.IsLogin = true;
-            }
-            //Console.WriteLine("收到报文{0}，执行结果{1}", Name, same);
+        }
+
+        public class LoginResult
+        {
+            public string UserName { get; set; }
+            public int ResultCode { get; set; }
         }
     }
 }

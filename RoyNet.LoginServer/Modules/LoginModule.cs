@@ -62,18 +62,18 @@ namespace RoyNet.LoginServer
             };
         }
 
-        void SendToGate(string uid, string token)
-        {
-            using (var context = NetMQContext.Create())
-            {
-                using (var socket = context.CreateRequestSocket())
-                {
-                    socket.Connect(Config.GateAddress);
-                    string msg = string.Format("{0},{1}", uid, token);
-                    socket.Send(msg, Encoding.UTF8);
-                    socket.Receive();//just wait
-                }
-            }
-        }
+        //void SendToGate(string uid, string token)
+        //{
+        //    using (var context = NetMQContext.Create())
+        //    {
+        //        using (var socket = context.CreateRequestSocket())
+        //        {
+        //            socket.Connect(Config.GateAddress);
+        //            string msg = string.Format("{0},{1}", uid, token);
+        //            socket.Send(msg, Encoding.UTF8);
+        //            socket.Receive();//just wait
+        //        }
+        //    }
+        //}
     }
 }

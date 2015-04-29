@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoyNet.GameServer", "RoyNet
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoyNet.Engine", "RoyNet.Engine\RoyNet.Engine.csproj", "{B81BBA90-2C4A-4370-8A95-5CB6BAD16B7F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoyNet.Tools", "RoyNet.Tools\RoyNet.Tools.csproj", "{7975A17F-0076-4246-8C62-C8B59CD30400}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{B81BBA90-2C4A-4370-8A95-5CB6BAD16B7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B81BBA90-2C4A-4370-8A95-5CB6BAD16B7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B81BBA90-2C4A-4370-8A95-5CB6BAD16B7F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7975A17F-0076-4246-8C62-C8B59CD30400}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7975A17F-0076-4246-8C62-C8B59CD30400}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7975A17F-0076-4246-8C62-C8B59CD30400}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7975A17F-0076-4246-8C62-C8B59CD30400}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

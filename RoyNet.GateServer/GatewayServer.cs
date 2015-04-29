@@ -21,24 +21,20 @@ namespace RoyNet.GateServer
         private readonly PushSocket _pushSocket;
         private CancellationTokenSource _cancelToken;
         private Thread _receThread2GameServer;
-        private readonly ResponseSocket _socket2LoginServer;
-        private CancellationTokenSource _cancelToken2LoginServer;
-        private Thread _receThread2LoginServer;
+
         public string GameServerAddress { get; private set; }
         public string LoginServerAddress { get; private set; }
-        public readonly ConcurrentDictionary<string,string> UIDTokens = new ConcurrentDictionary<string, string>();
         public GatewayServer(): base(new GatewayReceiveFilterFactory()) // 7 parts but 8 separators
         {
             _netMqContext = NetMQContext.Create();
             _pullSocket = _netMqContext.CreatePullSocket();
             _pushSocket = _netMqContext.CreatePushSocket();
-            _socket2LoginServer = _netMqContext.CreateResponseSocket();
         }
 
         protected override bool Setup(IRootConfig rootConfig, IServerConfig config)
         {
-            GameServerAddress = "ipc://game1";
-            LoginServerAddress = "ipc://ls";
+            GameServerAddress = config.Options["gameServerAddress"];
+            LoginServerAddress = config.Options["loginServerAddress"];
             return base.Setup(rootConfig, config);
         }
 
@@ -46,15 +42,11 @@ namespace RoyNet.GateServer
         {
             _pullSocket.Bind(GameServerAddress+"out");
             _pushSocket.Connect(GameServerAddress+"in");
-            _socket2LoginServer.Bind(LoginServerAddress);
 
             _receThread2GameServer = new Thread(ReceiveGameServer);
             _cancelToken = new CancellationTokenSource();
             _receThread2GameServer.Start();
 
-            _receThread2LoginServer = new Thread(ReceiveLoginServer);
-            _cancelToken2LoginServer = new CancellationTokenSource();
-            _receThread2LoginServer.Start();
             return base.Start();
         }
 
@@ -80,41 +72,15 @@ namespace RoyNet.GateServer
                 {
                     for (int i = 0; i < userCount; i++)
                     {
-                        int userID = converter.ToInt32(data, offset);
-                        offset += 4;
-                        sessions.AddRange(this.GetSessions(s => s.UserID == userID));
+                        long netHandle = converter.ToInt64(data, offset);
+                        offset += 8;
+                        sessions.AddRange(this.GetSessions(s => s.NetHandle == netHandle));
                     }
                 }
                 var package = new ArraySegment<byte>(data, offset, data.Length - offset);
                 foreach (PlayerSession session in sessions)
                 {
                     session.Send(package);
-                }
-            }
-        }
-
-        private static readonly char[] separator = new[] {','};
-
-        void ReceiveLoginServer()
-        {
-            while (!_cancelToken2LoginServer.IsCancellationRequested)
-            {
-                Thread.Sleep(1);
-                if (!_socket2LoginServer.HasIn)
-                    continue;
-                try
-                {
-                    string[] data = _socket2LoginServer.ReceiveString(Encoding.UTF8)
-                        .Split(separator, StringSplitOptions.RemoveEmptyEntries);
-                    string uid = data[0];
-                    string token = data[1];
-                    //Console.WriteLine("{0},{1}",uid, token);
-                    UIDTokens[uid] = token;
-                    _socket2LoginServer.Send("ok");
-                }
-                catch (Exception ex)
-                {
-                    //log
                 }
             }
         }
@@ -127,7 +93,6 @@ namespace RoyNet.GateServer
         public override void Stop()
         {
             base.Stop();
-            _cancelToken2LoginServer.Cancel();
             _cancelToken.Cancel();
         }
 
@@ -141,9 +106,17 @@ namespace RoyNet.GateServer
             _netMqContext.Dispose();
         }
 
-        public void Push(byte[] data)
+        public void Push2GameServer(PlayerSession session, byte[] data)
         {
-            _pushSocket.Send(data);
+            var converter = EndianBitConverter.Big;
+            byte[] sendData = new byte[data.Length + 10];
+            int offset = 0;
+            converter.CopyBytes(session.NetHandle, sendData, 0);
+            offset += 8;
+            converter.CopyBytes((ushort)data.Length, sendData, offset);
+            offset += 2;
+            Buffer.BlockCopy(data, 0, sendData, offset, data.Length);
+            _pushSocket.Send(sendData);
         }
     }
 }

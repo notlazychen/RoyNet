@@ -23,18 +23,10 @@ namespace RoyNet.GateServer
 
         public void ExecuteCommand(PlayerSession session, BinaryRequestInfo requestInfo)
         {
-            //if (!session.IsLogin)
-            //    return;//未登录的过滤
-            //todo: 转发给游戏服
-            var converter = EndianBitConverter.Big;
-            byte[] data = new byte[requestInfo.Body.Length + 6];
-            int offset = 0;
-            converter.CopyBytes(session.UserID, data, 0);
-            offset += 4;
-            converter.CopyBytes((ushort)requestInfo.Body.Length, data, offset);
-            offset += 2;
-            Buffer.BlockCopy(requestInfo.Body, 0, data, offset, requestInfo.Body.Length);
-            session.Server.Push(data);
+            if (!session.IsLogin)
+                return;//未登录的过滤
+            //转发给游戏服
+            session.Server.Push2GameServer(session, requestInfo.Body);
             Console.WriteLine("收到报文{0}，转发游戏服", Name);
         }
     }
