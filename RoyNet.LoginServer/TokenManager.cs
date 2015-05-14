@@ -31,13 +31,15 @@ namespace RoyNet.LoginServer
             return token;
         }
 
-        public static bool Check(string token)
+        public static bool Check(string token, out string uid)
         {
+            uid = null;
             KeyValuePair<string, Token> t = _tokensDICT.FirstOrDefault(v => v.Value.TokenCode == token);
-            if (t.Equals(default(KeyValuePair<string, Token>)))
+            if (!t.Equals(default(KeyValuePair<string, Token>)))
             {
                 if (t.Value.LimitTime > DateTime.Now)
                 {
+                    uid = t.Key;
                     return true;
                 }
                 Token outt;

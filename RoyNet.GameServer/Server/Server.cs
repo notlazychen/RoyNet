@@ -28,7 +28,7 @@ namespace RoyNet.GameServer
         private readonly TaskThread _mainThread;
         private readonly TaskThread _sendThread;
         private readonly TaskThread _receThread;
-        private readonly ConcurrentQueue<Tuple<int,CommandBase, object>> _actionsWaiting = new ConcurrentQueue<Tuple<int, CommandBase, object>>();
+        private readonly ConcurrentQueue<Tuple<long,CommandBase, object>> _actionsWaiting = new ConcurrentQueue<Tuple<long, CommandBase, object>>();
         private readonly ConcurrentQueue<IMessageEntity> _msgsWaiting = new ConcurrentQueue<IMessageEntity>();
         private readonly Dictionary<string, RequestFactor> _commands = new Dictionary<string, RequestFactor>();
         public string Address { get; private set; }
@@ -100,8 +100,8 @@ namespace RoyNet.GameServer
             byte[] data = _pullSocket.Receive();
             int offset = 0;
             var converter = EndianBitConverter.Big;
-            int userID = converter.ToInt32(data, offset);
-            offset += 4;
+            long userID = converter.ToInt64(data, offset);
+            offset += 8;
             int length = converter.ToUInt16(data, offset);
             offset += 2;
             int cmdName = converter.ToInt32(data, offset);
@@ -114,7 +114,7 @@ namespace RoyNet.GameServer
                     stream.Write(data, offset, length - 4);
                     stream.Position = 0;
                     var package = factor.CreatePackageMethod.Invoke(null, new object[] { stream });
-                    _actionsWaiting.Enqueue(new Tuple<int, CommandBase, object>(userID,factor.Command, package));
+                    _actionsWaiting.Enqueue(new Tuple<long, CommandBase, object>(userID,factor.Command, package));
                 }
             }
             else
@@ -127,7 +127,7 @@ namespace RoyNet.GameServer
         void MainLoop()
         {
             //todo: 超时判断
-            Tuple<int, CommandBase, object> tuple;
+            Tuple<long, CommandBase, object> tuple;
             while (_actionsWaiting.TryDequeue(out tuple))
             {
                 //Player p = _allPlayers[tuple.Item1];

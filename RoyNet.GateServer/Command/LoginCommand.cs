@@ -26,8 +26,8 @@ namespace RoyNet.GateServer
 
         public void ExecuteCommand(PlayerSession session, BinaryRequestInfo requestInfo)
         {
-            string token = Encoding.UTF8.GetString(requestInfo.Body);
-            string url = string.Format("{0}check/{1}", session.Server.LoginServerAddress, token);
+            string token = Encoding.UTF8.GetString(requestInfo.Body, 4, requestInfo.Body.Length - 4);
+            string url = string.Format("{0}chk/{1}", session.Server.LoginServerAddress, token);
             var request = WebRequest.Create(url);
             var response = request.GetResponse();
             var stream = response.GetResponseStream();
@@ -37,12 +37,13 @@ namespace RoyNet.GateServer
                 int length = stream.Read(data, 0, 64);
                 string result = Encoding.UTF8.GetString(data, 0, length);
                 var lr = JsonConvert.DeserializeObject<LoginResult>(result);
-                if (lr.ResultCode == 0)
+                if (lr.Result == "OK")
                 {
+                    //验证成功
                     session.Login();
                     var package = new G2G_ToGameLogin()
                     {
-                        UserName = lr.UserName
+                        UserName = lr.UID
                     };
                     using (var ms = new MemoryStream())
                     {
@@ -50,6 +51,7 @@ namespace RoyNet.GateServer
                         var sendData = ms.ToArray();
                         session.Server.Push2GameServer(session, sendData);
                     }
+                    session.Send(new ArraySegment<byte>(new byte[]{1}));
                 }
                 else
                 {
@@ -60,8 +62,8 @@ namespace RoyNet.GateServer
 
         public class LoginResult
         {
-            public string UserName { get; set; }
-            public int ResultCode { get; set; }
+            public string UID { get; set; }
+            public string Result { get; set; }
         }
     }
 }

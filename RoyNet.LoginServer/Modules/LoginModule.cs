@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
@@ -26,8 +27,7 @@ namespace RoyNet.LoginServer
                     }).FirstOrDefault();
                     if (uid != null)
                     {
-                        string token = Guid.NewGuid().ToString();
-                        SendToGate(uid, token);
+                        string token = TokenManager.CreateToken(uid);
                         return Response.AsJson(new { Result = "OK", Token = token });
                     }
                     else
@@ -50,14 +50,27 @@ namespace RoyNet.LoginServer
                     if (ret == 1)
                     {
                         string uid = conn.Query<string>("select uid from Account where username=@username", account).First();
-                        string token = Guid.NewGuid().ToString();
-                        SendToGate(uid, token);
+                        string token = TokenManager.CreateToken(uid);
                         return Response.AsJson(new { Result = "OK", Token = token });
                     }
                     else
                     {
                         return Response.AsJson(new { Result = "Failed" });
                     }
+                }
+            };
+
+            Get["/chk/{token}"] = p =>
+            {
+                string uid;
+                if (TokenManager.Check(p.token, out uid))
+                {
+                    return Response.AsJson(new { Result = "OK", UID = uid });
+                }
+                else
+                {
+
+                    return Response.AsJson(new { Result = "Failed" });
                 }
             };
         }

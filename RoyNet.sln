@@ -5,15 +5,13 @@ VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoyNet.LoginServer", "RoyNet.LoginServer\RoyNet.LoginServer.csproj", "{FF00E0C0-E149-4896-AE58-3E9480C62904}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Roynet.Test", "Roynet.Test\Roynet.Test.csproj", "{5B4E6696-F598-4CE5-A9E1-49A1AC0AB0BF}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoyNet.GateServer", "RoyNet.GateServer\RoyNet.GateServer.csproj", "{42FBDDEA-21AD-4C57-B22B-FB0927A9AC0D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoyNet.GameServer", "RoyNet.GameServer\RoyNet.GameServer.csproj", "{5E0B5321-375F-40C3-A926-937628C9F9A6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoyNet.Engine", "RoyNet.Engine\RoyNet.Engine.csproj", "{B81BBA90-2C4A-4370-8A95-5CB6BAD16B7F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoyNet.Tools", "RoyNet.Tools\RoyNet.Tools.csproj", "{7975A17F-0076-4246-8C62-C8B59CD30400}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClientDemo", "Client\ClientDemo.csproj", "{BD07908B-1C62-4521-8861-E91AFB80E5BC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -25,10 +23,6 @@ Global
 		{FF00E0C0-E149-4896-AE58-3E9480C62904}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FF00E0C0-E149-4896-AE58-3E9480C62904}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FF00E0C0-E149-4896-AE58-3E9480C62904}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5B4E6696-F598-4CE5-A9E1-49A1AC0AB0BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5B4E6696-F598-4CE5-A9E1-49A1AC0AB0BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5B4E6696-F598-4CE5-A9E1-49A1AC0AB0BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5B4E6696-F598-4CE5-A9E1-49A1AC0AB0BF}.Release|Any CPU.Build.0 = Release|Any CPU
 		{42FBDDEA-21AD-4C57-B22B-FB0927A9AC0D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{42FBDDEA-21AD-4C57-B22B-FB0927A9AC0D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{42FBDDEA-21AD-4C57-B22B-FB0927A9AC0D}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -41,10 +35,10 @@ Global
 		{B81BBA90-2C4A-4370-8A95-5CB6BAD16B7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B81BBA90-2C4A-4370-8A95-5CB6BAD16B7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B81BBA90-2C4A-4370-8A95-5CB6BAD16B7F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7975A17F-0076-4246-8C62-C8B59CD30400}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7975A17F-0076-4246-8C62-C8B59CD30400}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7975A17F-0076-4246-8C62-C8B59CD30400}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7975A17F-0076-4246-8C62-C8B59CD30400}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BD07908B-1C62-4521-8861-E91AFB80E5BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BD07908B-1C62-4521-8861-E91AFB80E5BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BD07908B-1C62-4521-8861-E91AFB80E5BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BD07908B-1C62-4521-8861-E91AFB80E5BC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
