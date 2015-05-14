@@ -60,6 +60,7 @@ namespace RoyNet.Engine
                 catch (Exception ex)
                 {
                     //todo: log file
+                    string msg = ex.Message;
                 }
                 Thread.Sleep(1);
             }
