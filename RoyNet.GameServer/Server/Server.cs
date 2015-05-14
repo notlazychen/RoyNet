@@ -16,6 +16,7 @@ using NetMQ.zmq;
 using RoyNet.Engine;
 using RoyNet.GameServer;
 using RoyNet.GameServer.Entity;
+using RoyNet.GateServer.Entity;
 
 namespace RoyNet.GameServer
 {
@@ -33,8 +34,8 @@ namespace RoyNet.GameServer
         private readonly Dictionary<string, RequestFactor> _commands = new Dictionary<string, RequestFactor>();
         public string Address { get; private set; }
         public bool IsRunning { get; private set; }
-        
-        private readonly Dictionary<int, Player> _allPlayers = new Dictionary<int, Player>();
+
+        private readonly Dictionary<long, Player> _allPlayers = new Dictionary<long, Player>();
 
         public Server(string address)
         {
@@ -130,8 +131,17 @@ namespace RoyNet.GameServer
             Tuple<long, CommandBase, object> tuple;
             while (_actionsWaiting.TryDequeue(out tuple))
             {
-                //Player p = _allPlayers[tuple.Item1];
-                tuple.Item2.Execute(null, tuple.Item3);
+                Player p;
+                if (tuple.Item2.Name == CMD_G2G.ToGameLogin.ToString("D"))
+                {
+                    p = new Player(tuple.Item1);
+                    _allPlayers[tuple.Item1] = p;
+                }
+                else
+                {
+                    p = _allPlayers[tuple.Item1];
+                }
+                tuple.Item2.Execute(p, tuple.Item3);
             }
         }
 
@@ -140,7 +150,7 @@ namespace RoyNet.GameServer
         /// </summary>
         public void Send<T>(Player player, int cmd, T package)
         {
-            _msgsWaiting.Enqueue(new Message<T>(cmd, package, player.UserID));
+            _msgsWaiting.Enqueue(new Message<T>(cmd, package, player.NetHandle));
         }
 
         /// <summary>
@@ -148,7 +158,7 @@ namespace RoyNet.GameServer
         /// </summary>
         public void Broadcast<T>(IEnumerable<Player> players, int cmd, T package)
         {
-            _msgsWaiting.Enqueue(new Message<T>(cmd, package, players.Select(p=>p.UserID).ToArray()));
+            _msgsWaiting.Enqueue(new Message<T>(cmd, package, players.Select(p=>p.NetHandle).ToArray()));
         }
 
         /// <summary>

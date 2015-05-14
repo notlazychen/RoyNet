@@ -78,7 +78,7 @@ namespace Client
             //TcpClient client = new TcpClient();
             //client.Connect("127.0.0.1", 2020);
             //var stream = client.GetStream();
-            //Rece(stream);
+            Rece(stream);
             while (stream.CanWrite)
             {
                 string text = Console.ReadLine();

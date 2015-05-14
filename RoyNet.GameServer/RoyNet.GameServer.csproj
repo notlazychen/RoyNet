@@ -51,8 +51,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Entity\GatePackageEntity.cs" />
     <Compile Include="Entity\PackageEntity.cs" />
     <Compile Include="Logic\Chat\Command\ChatCommand.cs" />
+    <Compile Include="Logic\Login\LoginCommand.cs" />
     <Compile Include="Server\CommandBase.cs" />
     <Compile Include="Server\Message.cs" />
     <Compile Include="Server\Request.cs" />

@@ -19,7 +19,7 @@ namespace RoyNet.GameServer.Logic.Chat
             Console.WriteLine(msg.Text);
             Server.Current.BroadcastAll((int)CMD_Chat.Send, new Chat_Send()
             {
-                Text = "我收到了哦，"+ msg.Text
+                Text = string.Format("玩家{0}说：{1}", player.UserName, msg.Text)
             });
         }
     }

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using MiscUtil.Conversion;
 using Newtonsoft.Json;
 using ProtoBuf;
 using RoyNet.GateServer.Entity;
@@ -48,7 +49,12 @@ namespace RoyNet.GateServer
                     using (var ms = new MemoryStream())
                     {
                         Serializer.Serialize(ms, package);
-                        var sendData = ms.ToArray();
+                        var loginPackage = ms.ToArray();
+
+                        var converter = EndianBitConverter.Big;
+                        byte[] sendData = new byte[loginPackage.Length + 4];
+                        converter.CopyBytes((int)CMD_G2G.ToGameLogin, sendData, 0);
+                        Buffer.BlockCopy(loginPackage, 0, sendData, 4, loginPackage.Length);
                         session.Server.Push2GameServer(session, sendData);
                     }
                     session.Send(new ArraySegment<byte>(new byte[]{1}));
