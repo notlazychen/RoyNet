@@ -5,16 +5,16 @@ namespace RoyNet.LoginServer
 {
     class LoginServerConfig : ConfigurationSection
     {
-        [ConfigurationProperty("hostUrl")]
-        public string HostUrl
+        [ConfigurationProperty("port")]
+        public int Port
         {
             get
             {
-                return this["hostUrl"].ToString();
+                return (int)this["port"];
             }
             set
             {
-                this["hostUrl"] = value;
+                this["port"] = value;
             }
         }
 

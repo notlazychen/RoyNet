@@ -1,4 +1,6 @@
-﻿using System;
+﻿#define Log
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -27,58 +29,82 @@ namespace RoyNet.GateServer
 
         public void ExecuteCommand(PlayerSession session, BinaryRequestInfo requestInfo)
         {
+            if (session.IsLogin)
+            {
+#if Log
+                Console.WriteLine("重复登录");
+#endif
+                return;//重复登录
+            }
+
             string token = Encoding.UTF8.GetString(requestInfo.Body, 4, requestInfo.Body.Length - 4);
+            
+#if Log
+            Console.WriteLine("有玩家尝试登录，token: {0}", token);
+#endif
+
             string url = string.Format("{0}chk/{1}", session.Server.LoginServerAddress, token);
             var request = WebRequest.Create(url);
             try
             {
-                var response = request.GetResponse();
-                var stream = response.GetResponseStream();
-                byte[] data = new byte[64];
-                if (stream != null && stream.CanRead)
+                using (var response = request.GetResponse())
                 {
-                    int length = stream.Read(data, 0, 64);
-                    string result = Encoding.UTF8.GetString(data, 0, length);
-                    var lr = JsonConvert.DeserializeObject<LoginResult>(result);
-                    if (lr.Result == "OK")//验证成功
+                    using (var stream = response.GetResponseStream())
                     {
-                        if (session.IsLogin)
-                            return;//重复登录
-
-                        //检查该UID玩家是否在线
-                        var sameSession = session.Server.GetAllSessions().FirstOrDefault(s => s.UID == lr.UID);
-                        if (sameSession != null)
+                        byte[] data = new byte[64];
+                        if (stream != null && stream.CanRead)
                         {
-                            //挤掉
-                            sameSession.Close();
+                            int length = stream.Read(data, 0, 64);
+                            string result = Encoding.UTF8.GetString(data, 0, length);
+                            var lr = JsonConvert.DeserializeObject<LoginResult>(result);
+                            if (lr.Result == "OK") //验证成功
+                            {
+
+                                //检查该UID玩家是否在线
+                                var sameSession = session.Server.GetAllSessions().FirstOrDefault(s => s.UID == lr.UID);
+                                if (sameSession != null)
+                                {
+                                    //挤掉
+#if Log
+                                    Console.WriteLine("异地登录，踢下线");
+#endif
+                                    sameSession.Close(CloseReason.ServerClosing);
+                                }
+
+                                session.Login(lr.UID);
+                                var package = new G2G_ToGameLogin()
+                                {
+                                    UserName = lr.UID
+                                };
+                                using (var ms = new MemoryStream())
+                                {
+                                    Serializer.Serialize(ms, package);
+                                    var loginPackage = ms.ToArray();
+
+                                    var converter = EndianBitConverter.Big;
+                                    byte[] sendData = new byte[loginPackage.Length + 4];
+                                    converter.CopyBytes((int) CMD_G2G.ToGameLogin, sendData, 0);
+                                    Buffer.BlockCopy(loginPackage, 0, sendData, 4, loginPackage.Length);
+                                    session.Server.Push2GameServer(session, sendData);
+                                }
+                                session.Send(new ArraySegment<byte>(new byte[] {1}));
+                            }
+                            else
+                            {
+#if Log
+                                Console.WriteLine("验证失败，踢下线");
+#endif
+                                session.Close(CloseReason.ServerClosing);
+                            }
                         }
-
-                        session.Login(lr.UID);
-                        var package = new G2G_ToGameLogin()
-                        {
-                            UserName = lr.UID
-                        };
-                        using (var ms = new MemoryStream())
-                        {
-                            Serializer.Serialize(ms, package);
-                            var loginPackage = ms.ToArray();
-
-                            var converter = EndianBitConverter.Big;
-                            byte[] sendData = new byte[loginPackage.Length + 4];
-                            converter.CopyBytes((int)CMD_G2G.ToGameLogin, sendData, 0);
-                            Buffer.BlockCopy(loginPackage, 0, sendData, 4, loginPackage.Length);
-                            session.Server.Push2GameServer(session, sendData);
-                        }
-                        session.Send(new ArraySegment<byte>(new byte[] { 1 }));
-                    }
-                    else
-                    {
-                        session.Close(CloseReason.ServerClosing);
                     }
                 }
             }
             catch (Exception ex)
             {
+#if Log
+                Console.WriteLine("SessionID:{0},Exception:{1}", session.SessionID, ex.Message);
+#endif
                 session.Logger.Debug(string.Format("SessionID:{0},Exception:{1}", session.SessionID, ex.Message));
             }
         }

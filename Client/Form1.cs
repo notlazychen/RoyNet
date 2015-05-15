@@ -70,7 +70,7 @@ namespace Client
                 int receLength = stream.EndRead(a);
                 if (receLength == 0)
                 {
-                    Log("您在另一个客户端登录！连接断开。");
+                    Log("服务器关闭了连接。可能是顶号。");
                     _client.Close();
                 }
                 else if (receLength == 1)

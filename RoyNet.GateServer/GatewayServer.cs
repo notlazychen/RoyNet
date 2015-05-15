@@ -54,33 +54,40 @@ namespace RoyNet.GateServer
         {
             while (!_cancelToken.IsCancellationRequested)
             {
-                Thread.Sleep(1);
-                if (!_pullSocket.HasIn)
-                    continue;
-                byte[] data = _pullSocket.Receive();
-                var converter = EndianBitConverter.Big;
-                int offset = 0;
-                int userCount = converter.ToInt32(data, offset);
-                offset += 4;
-                var sessions = new List<PlayerSession>();
-                if (userCount == 0)
+                try
                 {
-                    //群发
-                    sessions.AddRange(GetAllSessions());
-                }
-                else
-                {
-                    for (int i = 0; i < userCount; i++)
+                    Thread.Sleep(1);
+                    if (!_pullSocket.HasIn)
+                        continue;
+                    byte[] data = _pullSocket.Receive();
+                    var converter = EndianBitConverter.Big;
+                    int offset = 0;
+                    int userCount = converter.ToInt32(data, offset);
+                    offset += 4;
+                    var sessions = new List<PlayerSession>();
+                    if (userCount == 0)
                     {
-                        long netHandle = converter.ToInt64(data, offset);
-                        offset += 8;
-                        sessions.AddRange(this.GetSessions(s => s.NetHandle == netHandle));
+                        //群发
+                        sessions.AddRange(GetAllSessions().Where(s=>s.IsLogin));
+                    }
+                    else
+                    {
+                        for (int i = 0; i < userCount; i++)
+                        {
+                            long netHandle = converter.ToInt64(data, offset);
+                            offset += 8;
+                            sessions.AddRange(this.GetSessions(s => s.NetHandle == netHandle));
+                        }
+                    }
+                    var package = new ArraySegment<byte>(data, offset, data.Length - offset);
+                    foreach (PlayerSession session in sessions)
+                    {
+                        session.Send(package);
                     }
                 }
-                var package = new ArraySegment<byte>(data, offset, data.Length - offset);
-                foreach (PlayerSession session in sessions)
+                catch (Exception ex)
                 {
-                    session.Send(package);
+                    Logger.Error(ex.Message + Environment.NewLine + ex.StackTrace);
                 }
             }
         }
@@ -92,8 +99,8 @@ namespace RoyNet.GateServer
 
         public override void Stop()
         {
-            base.Stop();
             _cancelToken.Cancel();
+            base.Stop();
         }
 
         protected override void OnStopped()
