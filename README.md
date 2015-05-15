@@ -29,7 +29,9 @@ GameSever是游戏逻辑服务器
 
 
 可以通过修改LoginServer的App.Config来向服务器列表添加服务器。
+
 支持一个GateServer通过同一个消息队列对应多个GameServer实例来分流玩家。
+
 正在进行的一项改进是通过DestID，来让GateServer支持转发多个不同的游戏区服。
 
 上述服务器没有开启先后顺序，但未避免通讯数据丢失，还是请在GameServer开启之后再启动GateServer和LoginServer。
