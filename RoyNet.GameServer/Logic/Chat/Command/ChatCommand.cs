@@ -16,7 +16,7 @@ namespace RoyNet.GameServer.Logic.Chat
 
         public override void OnExecute(Player player, Chat_Send msg)
         {
-            Console.WriteLine(msg.Text);
+            //Console.WriteLine(msg.Text);
             Server.Current.BroadcastAll((int)CMD_Chat.Send, new Chat_Send()
             {
                 Text = string.Format("玩家{0}说：{1}", player.UserName, msg.Text)

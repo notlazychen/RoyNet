@@ -25,6 +25,7 @@ namespace RoyNet.GateServer
         {
             get { return _netHandle; }
         }
+        public string UID { get; private set; }
 
         public GatewayServer Server { get; private set; }
 
@@ -34,9 +35,10 @@ namespace RoyNet.GateServer
             base.OnSessionStarted();
         }
 
-        public void Login()
+        public void Login(string uid)
         {
             _isLogin = true;
+            UID = uid;
             _netHandle = Interlocked.Increment(ref _netHandleAutoIncrease);
         }
     }

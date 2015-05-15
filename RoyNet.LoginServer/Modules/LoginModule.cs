@@ -1,14 +1,6 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Linq;
 using Dapper;
 using Nancy;
-using NetMQ;
 
 namespace RoyNet.LoginServer
 {
@@ -28,7 +20,7 @@ namespace RoyNet.LoginServer
                     if (uid != null)
                     {
                         string token = TokenManager.CreateToken(uid);
-                        return Response.AsJson(new { Result = "OK", Token = token });
+                        return Response.AsJson(new { Result = "OK", Token = token, ServerList = Program.Config.GameServers });
                     }
                     else
                     {
@@ -51,7 +43,7 @@ namespace RoyNet.LoginServer
                     {
                         string uid = conn.Query<string>("select uid from Account where username=@username", account).First();
                         string token = TokenManager.CreateToken(uid);
-                        return Response.AsJson(new { Result = "OK", Token = token });
+                        return Response.AsJson(new { Result = "OK", Token = token, ServerList = Program.Config.GameServers });
                     }
                     else
                     {
@@ -69,24 +61,9 @@ namespace RoyNet.LoginServer
                 }
                 else
                 {
-
                     return Response.AsJson(new { Result = "Failed" });
                 }
             };
         }
-
-        //void SendToGate(string uid, string token)
-        //{
-        //    using (var context = NetMQContext.Create())
-        //    {
-        //        using (var socket = context.CreateRequestSocket())
-        //        {
-        //            socket.Connect(Config.GateAddress);
-        //            string msg = string.Format("{0},{1}", uid, token);
-        //            socket.Send(msg, Encoding.UTF8);
-        //            socket.Receive();//just wait
-        //        }
-        //    }
-        //}
     }
 }

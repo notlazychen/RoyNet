@@ -27,7 +27,7 @@ namespace RoyNet.GateServer
                 return;//未登录的过滤
             //转发给游戏服
             session.Server.Push2GameServer(session, requestInfo.Body);
-            Console.WriteLine("收到报文{0}，转发游戏服", Name);
+            //Console.WriteLine("收到报文{0}，转发游戏服", Name);
         }
     }
 }

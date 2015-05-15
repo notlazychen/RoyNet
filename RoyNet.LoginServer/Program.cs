@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,9 +11,13 @@ namespace RoyNet.LoginServer
 {
     class Program
     {
-        private static NancyHost Host;
+        public static LoginServerConfig Config { get; private set; }
+        public static NancyHost Host { get; private set; }
         static void Main(string[] args)
         {
+            Config = ConfigurationManager.GetSection("loginServer") as LoginServerConfig;
+            Debug.Assert(Config != null, "Config != null");
+
             string url = Config.HostUrl;
             Host = new NancyHost(new Uri(url));
             Host.Start();
