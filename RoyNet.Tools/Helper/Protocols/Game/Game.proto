@@ -1,0 +1,8 @@
+enum CMD_Game {
+	Entered				= 0x00000000;
+}
+
+//双向, 发送消息
+message Game_Entered {
+	optional int32 nothing = 1;
+}

@@ -1,8 +1,8 @@
 enum CMD_Chat {
-	C2S_Send				= 0x10000000;
+	Send				= 0x10000000;
 }
 
-/*发送消息*/
-message C2S_Chat_Send {
+//双向, 发送消息
+message Chat_Send {
 	required string Text = 1;
 }
