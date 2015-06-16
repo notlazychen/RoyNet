@@ -23,8 +23,15 @@ namespace RoyNet.LoginServer
             uris.Add(new Uri("http://127.0.0.1:"+Config.Port));
             Host = new NancyHost(uris.ToArray());
             Host.Start();
-            Console.WriteLine("你的服务器已经启动");
-            Console.ReadLine();//可以在这里写一个循环，用于运行中的命令行控制。
+            Console.WriteLine("登录服务器启动成功");
+            while (true)
+            {
+                if (Console.ReadLine() == "quit")
+                {
+                    break;
+                }
+            }
+            Console.WriteLine("byebye");
         }
 
         protected static IEnumerable<string> GetIP()   //获取本地IP

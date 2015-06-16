@@ -3,7 +3,7 @@ using System.Configuration;
 
 namespace RoyNet.LoginServer
 {
-    class LoginServerConfig : ConfigurationSection
+    public class LoginServerConfig : ConfigurationSection
     {
         [ConfigurationProperty("port")]
         public int Port
@@ -55,7 +55,7 @@ namespace RoyNet.LoginServer
         }
     }
 
-    class GameServer
+    public class GameServer
     {
         public string Name { get; set; }
 
@@ -78,7 +78,7 @@ namespace RoyNet.LoginServer
             return ((GameServerElement)element).Name;
         }
 
-        public GameServerElement this[string name]
+        public new GameServerElement this[string name]
         {
             get
             {

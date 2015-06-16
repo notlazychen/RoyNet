@@ -7,11 +7,44 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoyNet.LoginServer", "RoyNe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoyNet.GateServer", "RoyNet.GateServer\RoyNet.GateServer.csproj", "{42FBDDEA-21AD-4C57-B22B-FB0927A9AC0D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoyNet.GameServer", "RoyNet.GameServer\RoyNet.GameServer.csproj", "{5E0B5321-375F-40C3-A926-937628C9F9A6}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoyNet.Engine", "RoyNet.Engine\RoyNet.Engine.csproj", "{B81BBA90-2C4A-4370-8A95-5CB6BAD16B7F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoyNet.Game.Server", "RoyNet.GameServer\RoyNet.Game.Server.csproj", "{5E0B5321-375F-40C3-A926-937628C9F9A6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClientDemo", "Client\ClientDemo.csproj", "{BD07908B-1C62-4521-8861-E91AFB80E5BC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoyNet.Launch", "RoyNet.Launch\RoyNet.Launch.csproj", "{4F41E882-EE32-4723-9232-647C23590C00}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Reference", "Reference", "{F1E3011F-73F5-417B-A895-A14370AEE1BA}"
+	ProjectSection(SolutionItems) = preProject
+		References\log4net.dll = References\log4net.dll
+		References\Microsoft.Scripting.dll = References\Microsoft.Scripting.dll
+		References\Microsoft.Scripting.xml = References\Microsoft.Scripting.xml
+		References\MiscUtil.dll = References\MiscUtil.dll
+		References\MiscUtil.pdb = References\MiscUtil.pdb
+		References\SuperSocket.Common.dll = References\SuperSocket.Common.dll
+		References\SuperSocket.Common.pdb = References\SuperSocket.Common.pdb
+		References\SuperSocket.Common.XML = References\SuperSocket.Common.XML
+		References\SuperSocket.Facility.dll = References\SuperSocket.Facility.dll
+		References\SuperSocket.Facility.pdb = References\SuperSocket.Facility.pdb
+		References\SuperSocket.Facility.XML = References\SuperSocket.Facility.XML
+		References\supersocket.sh = References\supersocket.sh
+		References\SuperSocket.SocketBase.dll = References\SuperSocket.SocketBase.dll
+		References\SuperSocket.SocketBase.pdb = References\SuperSocket.SocketBase.pdb
+		References\SuperSocket.SocketBase.XML = References\SuperSocket.SocketBase.XML
+		References\SuperSocket.SocketEngine.dll = References\SuperSocket.SocketEngine.dll
+		References\SuperSocket.SocketEngine.pdb = References\SuperSocket.SocketEngine.pdb
+		References\SuperSocket.SocketEngine.XML = References\SuperSocket.SocketEngine.XML
+		References\SuperSocket.SocketService.exe = References\SuperSocket.SocketService.exe
+		References\SuperSocket.SocketService.exe.config = References\SuperSocket.SocketService.exe.config
+		References\SuperSocket.SocketService.pdb = References\SuperSocket.SocketService.pdb
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Exe", "Exe", "{C110A9BA-297C-4185-B774-CAAFF9241C41}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "QuickStart", "QuickStart", "{271F424B-9E76-4D9F-A507-FA888DCDC14A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lib", "Lib", "{F9B4B33F-50E8-4647-9DEC-C184D4BB61DD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoyNet.Game.Logic", "RoyNet.Game.Logic\RoyNet.Game.Logic.csproj", "{20CF0287-A757-4F01-B0FD-A0CE58EF6CDC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,16 +64,27 @@ Global
 		{5E0B5321-375F-40C3-A926-937628C9F9A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5E0B5321-375F-40C3-A926-937628C9F9A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5E0B5321-375F-40C3-A926-937628C9F9A6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B81BBA90-2C4A-4370-8A95-5CB6BAD16B7F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B81BBA90-2C4A-4370-8A95-5CB6BAD16B7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B81BBA90-2C4A-4370-8A95-5CB6BAD16B7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B81BBA90-2C4A-4370-8A95-5CB6BAD16B7F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{BD07908B-1C62-4521-8861-E91AFB80E5BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{BD07908B-1C62-4521-8861-E91AFB80E5BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BD07908B-1C62-4521-8861-E91AFB80E5BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BD07908B-1C62-4521-8861-E91AFB80E5BC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4F41E882-EE32-4723-9232-647C23590C00}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4F41E882-EE32-4723-9232-647C23590C00}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4F41E882-EE32-4723-9232-647C23590C00}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4F41E882-EE32-4723-9232-647C23590C00}.Release|Any CPU.Build.0 = Release|Any CPU
+		{20CF0287-A757-4F01-B0FD-A0CE58EF6CDC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{20CF0287-A757-4F01-B0FD-A0CE58EF6CDC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{20CF0287-A757-4F01-B0FD-A0CE58EF6CDC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{20CF0287-A757-4F01-B0FD-A0CE58EF6CDC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{FF00E0C0-E149-4896-AE58-3E9480C62904} = {C110A9BA-297C-4185-B774-CAAFF9241C41}
+		{42FBDDEA-21AD-4C57-B22B-FB0927A9AC0D} = {C110A9BA-297C-4185-B774-CAAFF9241C41}
+		{5E0B5321-375F-40C3-A926-937628C9F9A6} = {F9B4B33F-50E8-4647-9DEC-C184D4BB61DD}
+		{BD07908B-1C62-4521-8861-E91AFB80E5BC} = {271F424B-9E76-4D9F-A507-FA888DCDC14A}
+		{20CF0287-A757-4F01-B0FD-A0CE58EF6CDC} = {F9B4B33F-50E8-4647-9DEC-C184D4BB61DD}
 	EndGlobalSection
 EndGlobal

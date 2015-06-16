@@ -11,6 +11,7 @@ using NetMQ.Sockets;
 using SuperSocket.SocketBase;
 using SuperSocket.SocketBase.Config;
 using SuperSocket.SocketBase.Protocol;
+using SuperSocket.SocketEngine;
 
 namespace RoyNet.GateServer
 {
@@ -113,7 +114,7 @@ namespace RoyNet.GateServer
             _netMqContext.Dispose();
         }
 
-        public void Push2GameServer(PlayerSession session, byte[] data)
+        internal void Push2GameServer(PlayerSession session, byte[] data)
         {
             var converter = EndianBitConverter.Big;
             byte[] sendData = new byte[data.Length + 10];
