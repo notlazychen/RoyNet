@@ -48,15 +48,7 @@ namespace RoyNet.GameServer
             OnStarted();
             while (!_threadToken.IsCancellationRequested)
             {
-                try
-                {
-                    _onExecute();
-                }
-                catch (Exception ex)
-                {
-                    //todo: log file
-                    string msg = ex.Message;
-                }
+                _onExecute();
                 Thread.Sleep(1);
             }
             //Console.WriteLine("[{0}]线程关闭中", Thread.CurrentThread.Name);

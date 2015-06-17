@@ -17,7 +17,7 @@ namespace RoyNet.Launch
     {
         static void Main(string[] args)
         {
-            var bootstrap = Game.Logic.GameServer.CreateBootstrapper();
+            var bootstrap = Bootstrapper.CreateBootstrapper("ipc://game1");
 
             bootstrap.Start();
             Console.WriteLine("游戏服务器启动成功");
@@ -62,7 +62,7 @@ namespace RoyNet.Launch
         {
             ProcessStartInfo startInfo = new ProcessStartInfo("RoyNet.GateServer.exe")
             {
-                WindowStyle = ProcessWindowStyle.Minimized
+                WindowStyle = ProcessWindowStyle.Hidden
             };
             return Process.Start(startInfo);
         }
@@ -71,7 +71,7 @@ namespace RoyNet.Launch
         {
             ProcessStartInfo startInfo = new ProcessStartInfo("RoyNet.LoginServer.exe")
             {
-                WindowStyle = ProcessWindowStyle.Minimized,
+                WindowStyle = ProcessWindowStyle.Hidden,
                 UseShellExecute = true
                 
             };

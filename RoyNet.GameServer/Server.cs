@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
@@ -39,6 +40,11 @@ namespace RoyNet.GameServer
 
         private readonly List<RoyNetModule> _modules = new List<RoyNetModule>();
 
+        public IEnumerable<RoyNetModule> Modules
+        {
+            get { return _modules;}
+        }
+
         public Server(string address)
         {
             _mainThread = new TaskThread("执行", MainLoop);
@@ -50,76 +56,38 @@ namespace RoyNet.GameServer
             _pushSocket = _netMqContext.CreatePushSocket();
             Current = this;
         }
+
+        protected virtual void OnServerStartup(List<RoyNetModule> modulesContainer)
+        {
+            
+        }
         
         public void Open()
         {
             Logger = new NLogLoggingService("roynet");
-            Logger.Info("game server is starting");
+            Logger.Trace("************************");
+            Logger.Trace("game server is starting");
 
             List<CommandBase> commands = new List<CommandBase>()
             {
                 new LoginCommand()
             };
 
-
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            //加载模块
+            OnServerStartup(_modules);
+            foreach (RoyNetModule module in _modules)
             {
-                IEnumerable<Type> ts = assembly.GetExportedTypes();
-                foreach (Type t in ts)
-                {
-                    if (t.IsAbstract) continue;
-                    if (t.IsSubclassOf(typeof (RoyNetBootstrapper)))
-                    {
-                        var ins = Activator.CreateInstance(t) as RoyNetBootstrapper;
-                        var modules = new List<RoyNetModule>();
-                        ins.ServerStartup(modules);
-                        foreach (RoyNetModule module in modules)
-                        {
-                            module.Startup(commands);
-                        }
-                    }
-                }
+                module.Startup(commands);
+                Logger.Trace("load module:{0}", module.Name);
             }
 
-
+            //初始化Command
             MethodInfo methodSerializer = typeof(ProtoBuf.Serializer).GetMethod("Deserialize");
             foreach (CommandBase command in commands)
             {
-                Type t = command.GetType();
-                Debug.Assert(t.BaseType != null, "t.BaseType != null");
-                var entityType = t.BaseType.GetGenericArguments()[0];
-                Debug.Assert(command != null, "ins != null");
-                _commands[command.Name] = new RequestFactor()
-                {
-                    Command = command,
-                    PackageType = entityType,
-                    CreatePackageMethod = methodSerializer.MakeGenericMethod(entityType)
-                };
-                Logger.Info("load command:{0}", command.Name);
+                RegisterCommand(methodSerializer, command);
+                Logger.Trace("load command:{0}", command.Name);
             }
-
-            //foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-            //{
-            //    IEnumerable<Type> ts = assembly.GetExportedTypes();
-            //    foreach (Type t in ts)
-            //    {
-            //        if (t.IsAbstract) continue;
-            //        if (t.IsSubclassOf(typeof(CommandBase)))
-            //        {
-            //            var ins = Activator.CreateInstance(t) as CommandBase;
-            //            Debug.Assert(t.BaseType != null, "t.BaseType != null");
-            //            var entityType = t.BaseType.GetGenericArguments()[0];
-            //            Debug.Assert(ins != null, "ins != null");
-            //            _commands[ins.Name] = new RequestFactor()
-            //            {
-            //                Command = ins,
-            //                PackageType = entityType,
-            //                CreatePackageMethod = methodSerializer.MakeGenericMethod(entityType)
-            //            };
-            //            Logger.Info("load command:{0}", ins.Name);
-            //        }
-            //    }
-            //}
 
             _pullSocket.Bind(Address + "in");
             _pushSocket.Connect(Address + "out");
@@ -127,71 +95,118 @@ namespace RoyNet.GameServer
             _sendThread.Start();
             _receThread.Start();
             IsRunning = true;
-            Logger.Info("game server start successful");
+            Logger.Trace("game server start successful");
         }
 
+        void RegisterCommand(MethodInfo methodSerializer, CommandBase command)
+        {
+            Type t = command.GetType();
+            Debug.Assert(t.BaseType != null, "t.BaseType != null");
+            var entityType = t.BaseType.GetGenericArguments()[0];
+            Debug.Assert(command != null, "ins != null");
+            _commands[command.Name] = new RequestFactor()
+            {
+                Command = command,
+                PackageType = entityType,
+                CreatePackageMethod = methodSerializer.MakeGenericMethod(entityType)
+            };
+        }
+
+        #region 服务器三巨头
         void OnSend()
         {
-            IMessageEntity msg;
-            if (_msgsWaiting.TryDequeue(out msg))
+            try
             {
-                byte[] data = msg.Serialize();
-                _pushSocket.Send(data);
+                IMessageEntity msg;
+                if (_msgsWaiting.TryDequeue(out msg))
+                {
+                    byte[] data = msg.Serialize();
+                    _pushSocket.Send(data);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Fatal(ex);
             }
         }
 
         void OnReceive()
         {
-            if (!_pullSocket.HasIn)
+            try
             {
-                return;
-            }
-            byte[] data = _pullSocket.Receive();
-            int offset = 0;
-            var converter = EndianBitConverter.Big;
-            long userID = converter.ToInt64(data, offset);
-            offset += 8;
-            int length = converter.ToUInt16(data, offset);
-            offset += 2;
-            int cmdName = converter.ToInt32(data, offset);
-            offset += 4;
-            RequestFactor factor;
-            if (_commands.TryGetValue(cmdName.ToString("D"), out factor))
-            {
-                using (var stream = new MemoryStream())
+                if (!_pullSocket.HasIn)
                 {
-                    stream.Write(data, offset, length - 4);
-                    stream.Position = 0;
-                    var package = factor.CreatePackageMethod.Invoke(null, new object[] { stream });
-                    _actionsWaiting.Enqueue(new Tuple<long, CommandBase, object>(userID,factor.Command, package));
+                    return;
+                }
+                byte[] data = _pullSocket.Receive();
+                int offset = 0;
+                var converter = EndianBitConverter.Big;
+                long netHandle = converter.ToInt64(data, offset);
+                offset += 8;
+                int length = converter.ToUInt16(data, offset);
+                offset += 2;
+                int cmdName = converter.ToInt32(data, offset);
+                offset += 4;
+                RequestFactor factor;
+                if (_commands.TryGetValue(cmdName.ToString("D"), out factor))
+                {
+                    using (var stream = new MemoryStream())
+                    {
+                        stream.Write(data, offset, length - 4);
+                        stream.Position = 0;
+                        var package = factor.CreatePackageMethod.Invoke(null, new object[] {stream});
+                        _actionsWaiting.Enqueue(new Tuple<long, CommandBase, object>(netHandle, factor.Command, package));
+                    }
+                }
+                else
+                {
+                    //不认识的协议
+                    Logger.Debug("unknow request:{0} from {1}", cmdName.ToString("D"), netHandle);
                 }
             }
-            else
+            catch (Exception ex)
             {
-                //todo:不认识的协议
+                Logger.Fatal(ex);
             }
+        }
+
+        /// <summary>
+        /// 服务器上的每帧
+        /// </summary>
+        protected virtual void OnMainLoop()
+        {
+            
         }
 
         //游戏主循环
         void MainLoop()
         {
-            //todo: 超时判断
-            Tuple<long, CommandBase, object> tuple;
-            while (_actionsWaiting.TryDequeue(out tuple))
+            try
             {
-                Player p;
-                if (tuple.Item2.Name == CMD_G2G.ToGameLogin.ToString("D"))
+                Tuple<long, CommandBase, object> tuple;
+                while (_actionsWaiting.TryDequeue(out tuple))
                 {
-                    p = new Player(tuple.Item1);
-                    _allPlayers[tuple.Item1] = p;
+                    Player p;
+                    if (tuple.Item2.Name == CMD_G2G.ToGameLogin.ToString("D"))
+                    {
+                        p = new Player(tuple.Item1);
+                        _allPlayers[tuple.Item1] = p;
+                    }
+                    else
+                    {
+                        p = _allPlayers[tuple.Item1];
+                    }
+                    tuple.Item2.Execute(p, tuple.Item3);
                 }
-                else
-                {
-                    p = _allPlayers[tuple.Item1];
-                }
-                tuple.Item2.Execute(p, tuple.Item3);
+                OnMainLoop();
+            }
+            catch (Exception ex)
+            {
+                Logger.Fatal(ex);
             }
         }
+
+        #endregion
 
         /// <summary>
         /// 发送给指定玩家报文
@@ -238,7 +253,7 @@ namespace RoyNet.GameServer
             _pushSocket.Dispose();
             _netMqContext.Dispose();
             IsRunning = false;
-            Logger.Info("game server stopped");
+            Logger.Trace("game server stopped");
         }
     }
 

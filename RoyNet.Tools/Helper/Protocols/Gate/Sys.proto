@@ -1,17 +1,27 @@
 enum CMD_G2G {
-	ToGameLogin 	 = 0x00000001;
-	ToGameLogOut 	 = 0x00000002;
-	ToGateDisconnect = 0x00000003;
+	ToGameConnect 	 = 0x00000001;
+	ToGameDisconnect = 0x00000002;
+	ToGateLeave      = 0x00000003;
 }
 
-message G2G_ToGameLogin {
-	required string UserName=1;
+message G2G_ToGameConnect {
+	required string UserName = 1;
+	
+	optional string IPAddress = 3;
+	optional int32 Port         = 4;
+	optional string MAC       = 5;
 }
 
-message G2G_ToGameLogOut {
+message G2G_ToGameDisconnect {
 	optional string Reason = 1;
 }
 
-message G2G_ToGateDisconnect {
-	optional string Reason = 1;
+message G2G_ToGateLeave {
+	required LeaveReason Reason = 1;
+}
+
+enum LeaveReason{
+	Normal = 0;
+	Fatal = 1;
+	Cheat = 2;
 }
