@@ -15,5 +15,10 @@ namespace RoyNet.LoginServer
         {
             base.ApplicationStartup(container, pipelines);
         }
+
+        protected override void ConfigureApplicationContainer(TinyIoCContainer container)
+        {
+            base.ConfigureApplicationContainer(container);
+        }
     }
 }

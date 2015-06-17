@@ -29,6 +29,10 @@ namespace RoyNet.GateServer
                 {
                     break;
                 }
+                else
+                {
+                    Console.WriteLine(bootstrap.AppServers.First().SessionCount);
+                }
             }
 
             bootstrap.Stop();

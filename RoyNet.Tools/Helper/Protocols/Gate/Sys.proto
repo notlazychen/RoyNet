@@ -24,4 +24,6 @@ enum LeaveReason{
 	Normal = 0;
 	Fatal = 1;
 	Cheat = 2;
+	Displace = 3;
+	KickOff = 4;
 }

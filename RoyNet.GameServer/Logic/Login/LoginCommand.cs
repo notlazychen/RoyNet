@@ -7,16 +7,16 @@ using RoyNet.GateServer.Entity;
 
 namespace RoyNet.GameServer.Logic.Login
 {
-    internal class LoginCommand : CommandBase<G2G_ToGameLogin>
+    internal class LoginCommand : CommandBase<Server, G2G_ToGameConnect>
     {
         public override string Name
         {
-            get { return CMD_G2G.ToGameLogin.ToString("D"); }
+            get { return CMD_G2G.ToGameConnect.ToString("D"); }
         }
-
-        public override void OnExecute(Player player, G2G_ToGameLogin msg)
+        
+        public override void OnExecute(Server server, Player player, G2G_ToGameConnect msg)
         {
-            player.Login(msg.UserName);
+            player.SetLogin(msg.UserName);
         }
     }
 }

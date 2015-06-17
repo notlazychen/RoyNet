@@ -39,7 +39,8 @@ namespace RoyNet.Launch
                 {
                     break;
                 }
-                Console.WriteLine("unknown command!");
+                bootstrap.Order(cmd);
+                //Console.WriteLine("unknown command!");
             }
             loginServerProcess.Kill();
             Console.WriteLine("登录服务器关闭");
@@ -60,6 +61,11 @@ namespace RoyNet.Launch
 
         static Process StartGateWay()
         {
+            var ps = Process.GetProcessesByName("RoyNet.GateServer");
+            foreach (Process process in ps)
+            {
+                process.Kill();
+            }
             ProcessStartInfo startInfo = new ProcessStartInfo("RoyNet.GateServer.exe")
             {
                 WindowStyle = ProcessWindowStyle.Hidden
@@ -69,6 +75,11 @@ namespace RoyNet.Launch
 
         static Process StartLoginServer()
         {
+            var ps = Process.GetProcessesByName("RoyNet.LoginServer");
+            foreach (Process process in ps)
+            {
+                process.Kill();
+            }
             ProcessStartInfo startInfo = new ProcessStartInfo("RoyNet.LoginServer.exe")
             {
                 WindowStyle = ProcessWindowStyle.Hidden,

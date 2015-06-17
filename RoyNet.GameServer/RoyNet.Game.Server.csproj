@@ -59,6 +59,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Entity\GatePackageEntity.cs" />
+    <Compile Include="Logic\Login\LogoutCommand.cs" />
     <Compile Include="RoyNetModule.cs" />
     <Compile Include="Util\ICommand.cs" />
     <Compile Include="Util\IMessageEntity.cs" />

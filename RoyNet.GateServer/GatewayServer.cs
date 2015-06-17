@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -8,6 +9,8 @@ using System.Threading.Tasks;
 using MiscUtil.Conversion;
 using NetMQ;
 using NetMQ.Sockets;
+using ProtoBuf;
+using RoyNet.GateServer.Entity;
 using SuperSocket.SocketBase;
 using SuperSocket.SocketBase.Config;
 using SuperSocket.SocketBase.Protocol;
@@ -112,6 +115,31 @@ namespace RoyNet.GateServer
             _pushSocket.Close();
             _pushSocket.Dispose();
             _netMqContext.Dispose();
+        }
+
+        protected override void OnSessionClosed(PlayerSession session, CloseReason reason)
+        {
+            base.OnSessionClosed(session, reason);
+
+            var package = new G2G_ToGameDisconnect()
+            {
+                Reason = reason.ToString()
+            };
+
+            using (var ms = new MemoryStream())
+            {
+                Serializer.Serialize(ms, package);
+                var packageData = ms.ToArray();
+
+                var converter = EndianBitConverter.Big;
+                byte[] sendData = new byte[packageData.Length + 4];
+                converter.CopyBytes((int)CMD_G2G.ToGameDisconnect, sendData, 0);
+                Buffer.BlockCopy(packageData, 0, sendData, 4, packageData.Length);
+                Push2GameServer(session, sendData);
+            }
+#if Log
+            Console.WriteLine("{0}:one session close", DateTime.Now);
+#endif
         }
 
         internal void Push2GameServer(PlayerSession session, byte[] data)

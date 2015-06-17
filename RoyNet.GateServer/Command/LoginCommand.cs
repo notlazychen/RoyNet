@@ -1,6 +1,4 @@
-﻿#define Log
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -56,7 +54,7 @@ namespace RoyNet.GateServer
                         {
                             int length = stream.Read(data, 0, 64);
                             string result = Encoding.UTF8.GetString(data, 0, length);
-                            var lr = JsonConvert.DeserializeObject<LoginResult>(result);
+                            LoginResult lr = JsonConvert.DeserializeObject<LoginResult>(result);
                             if (lr.Result == "OK") //验证成功
                             {
 
@@ -71,22 +69,7 @@ namespace RoyNet.GateServer
                                     sameSession.Close(CloseReason.ServerClosing);
                                 }
 
-                                session.Login(lr.UID);
-                                var package = new G2G_ToGameLogin()
-                                {
-                                    UserName = lr.UID
-                                };
-                                using (var ms = new MemoryStream())
-                                {
-                                    Serializer.Serialize(ms, package);
-                                    var loginPackage = ms.ToArray();
-
-                                    var converter = EndianBitConverter.Big;
-                                    byte[] sendData = new byte[loginPackage.Length + 4];
-                                    converter.CopyBytes((int) CMD_G2G.ToGameLogin, sendData, 0);
-                                    Buffer.BlockCopy(loginPackage, 0, sendData, 4, loginPackage.Length);
-                                    session.Server.Push2GameServer(session, sendData);
-                                }
+                                session.EnterGame(lr);
                                 session.Send(new ArraySegment<byte>(new byte[] {1}));
                             }
                             else

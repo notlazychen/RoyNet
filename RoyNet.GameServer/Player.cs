@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using RoyNet.GateServer.Entity;
 
 namespace RoyNet.GameServer
 {
@@ -17,9 +18,22 @@ namespace RoyNet.GameServer
             NetHandle = netHandle;
         }
 
-        public void Login(string username)
+        public void SetLogin(string username)
         {
             UserName = username;
+        }
+
+        public void SetLogout()
+        {
+            
+        }
+
+        public void Kickout()
+        {
+            GameServer.Send(this, (int)CMD_G2G.ToGateLeave, new G2G_ToGateLeave()
+            {
+                Reason = LeaveReason.Displace 
+            });
         }
 
         public void Send<T>(int cmd, T package)

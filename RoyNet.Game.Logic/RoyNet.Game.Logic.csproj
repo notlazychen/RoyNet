@@ -47,6 +47,7 @@
     <Compile Include="Chat\Command\ChatCommand.cs" />
     <Compile Include="GamePackageEntity.cs" />
     <Compile Include="GameServer.cs" />
+    <Compile Include="Order.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

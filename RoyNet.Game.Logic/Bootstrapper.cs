@@ -19,5 +19,13 @@
         {
             Server.Close();
         }
+
+        public void Order(string cmd)
+        {
+            Server.EnqueueOrder(new Order()
+            {
+                ContainerName = ContainerName.Player
+            });
+        }
     }
 }

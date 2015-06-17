@@ -9,6 +9,14 @@ namespace RoyNet.GameServer
     {
         public abstract string Name { get; }
 
-        public abstract void Startup(List<CommandBase> commandContainer);
+        /// <summary>
+        /// 开始驱动
+        /// </summary>
+        public abstract void Startup();
+
+        /// <summary>
+        /// 配置Command
+        /// </summary>
+        public abstract void Configure(List<CommandBase> commandContainer);
     }
 }

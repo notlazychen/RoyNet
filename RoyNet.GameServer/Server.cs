@@ -14,6 +14,7 @@ using MiscUtil.Conversion;
 using NetMQ;
 using NetMQ.Sockets;
 using NetMQ.zmq;
+using ProtoBuf;
 using RoyNet.GameServer;
 using RoyNet.GameServer.Logic.Login;
 using RoyNet.GateServer.Entity;
@@ -70,14 +71,15 @@ namespace RoyNet.GameServer
 
             List<CommandBase> commands = new List<CommandBase>()
             {
-                new LoginCommand()
+                new LoginCommand(),
+                new LogoutCommand()
             };
 
             //加载模块
             OnServerStartup(_modules);
             foreach (RoyNetModule module in _modules)
             {
-                module.Startup(commands);
+                module.Configure(commands);
                 Logger.Trace("load module:{0}", module.Name);
             }
 
@@ -96,13 +98,18 @@ namespace RoyNet.GameServer
             _receThread.Start();
             IsRunning = true;
             Logger.Trace("game server start successful");
+
+            foreach (RoyNetModule module in _modules)
+            {
+                module.Startup();
+            }
         }
 
         void RegisterCommand(MethodInfo methodSerializer, CommandBase command)
         {
             Type t = command.GetType();
             Debug.Assert(t.BaseType != null, "t.BaseType != null");
-            var entityType = t.BaseType.GetGenericArguments()[0];
+            var entityType = t.BaseType.GetGenericArguments()[1];
             Debug.Assert(command != null, "ins != null");
             _commands[command.Name] = new RequestFactor()
             {
@@ -150,17 +157,25 @@ namespace RoyNet.GameServer
                 RequestFactor factor;
                 if (_commands.TryGetValue(cmdName.ToString("D"), out factor))
                 {
-                    using (var stream = new MemoryStream())
+                    var stream = new MemoryStream();
+                    try
                     {
                         stream.Write(data, offset, length - 4);
                         stream.Position = 0;
-                        var package = factor.CreatePackageMethod.Invoke(null, new object[] {stream});
+                        var package = factor.CreatePackageMethod.Invoke(null, new object[] { stream });
                         _actionsWaiting.Enqueue(new Tuple<long, CommandBase, object>(netHandle, factor.Command, package));
+                        stream.Dispose();
+                    }
+                    catch (ProtoException ex)
+                    {
+                        stream.Dispose();
+                        //协议错误，考虑要不要断开
+                        Logger.Debug("unknow request:{0} from {1}", cmdName.ToString("D"), netHandle);
                     }
                 }
                 else
                 {
-                    //不认识的协议
+                    //不认识的协议，考虑要不要断开
                     Logger.Debug("unknow request:{0} from {1}", cmdName.ToString("D"), netHandle);
                 }
             }
@@ -173,7 +188,7 @@ namespace RoyNet.GameServer
         /// <summary>
         /// 服务器上的每帧
         /// </summary>
-        protected virtual void OnMainLoop()
+        protected virtual void OnMainLoop(IEnumerable<Player> players)
         {
             
         }
@@ -187,18 +202,26 @@ namespace RoyNet.GameServer
                 while (_actionsWaiting.TryDequeue(out tuple))
                 {
                     Player p;
-                    if (tuple.Item2.Name == CMD_G2G.ToGameLogin.ToString("D"))
+                    if (tuple.Item2.Name == CMD_G2G.ToGameConnect.ToString("D"))
                     {
                         p = new Player(tuple.Item1);
+                        if (_allPlayers.ContainsKey(tuple.Item1))
+                        {
+                            _allPlayers[tuple.Item1].Kickout();//顶号
+                        }
                         _allPlayers[tuple.Item1] = p;
-                    }
-                    else
+                    } else 
+                    if (tuple.Item2.Name == CMD_G2G.ToGameDisconnect.ToString("D"))
+                    {
+                        p = _allPlayers[tuple.Item1];
+                        _allPlayers.Remove(tuple.Item1);
+                    } else
                     {
                         p = _allPlayers[tuple.Item1];
                     }
-                    tuple.Item2.Execute(p, tuple.Item3);
+                    tuple.Item2.Execute(this, p, tuple.Item3);
                 }
-                OnMainLoop();
+                OnMainLoop(_allPlayers.Values);
             }
             catch (Exception ex)
             {
