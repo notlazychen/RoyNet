@@ -17,9 +17,9 @@ namespace RoyNet.Launch
     {
         static void Main(string[] args)
         {
-            var bootstrap = Bootstrapper.CreateBootstrapper("ipc://game1");
+            var gm = GameManager.CreateGameManager("ipc://game1");
 
-            bootstrap.Start();
+            gm.Start();
             Console.WriteLine("游戏服务器启动成功");
 
             Console.ForegroundColor = ConsoleColor.Green;
@@ -39,16 +39,18 @@ namespace RoyNet.Launch
                 {
                     break;
                 }
-                bootstrap.Order(cmd);
+                gm.Order(cmd);
                 //Console.WriteLine("unknown command!");
             }
-            loginServerProcess.Kill();
+            if(!loginServerProcess.HasExited)
+                loginServerProcess.Kill();
             Console.WriteLine("登录服务器关闭");
 
-            gatewayProcess.Kill();
+            if(!gatewayProcess.HasExited)
+                gatewayProcess.Kill();
             Console.WriteLine("网关服务器关闭");
 
-            bootstrap.Stop();
+            gm.Stop();
             Console.WriteLine("游戏服务器关闭");
 
             Console.WriteLine("服务器关闭，byebye");

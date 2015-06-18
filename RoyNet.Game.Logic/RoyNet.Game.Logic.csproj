@@ -42,7 +42,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Bootstrapper.cs" />
+    <Compile Include="GameManager.cs" />
     <Compile Include="Chat\ChatModule.cs" />
     <Compile Include="Chat\Command\ChatCommand.cs" />
     <Compile Include="GamePackageEntity.cs" />

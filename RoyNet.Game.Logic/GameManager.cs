@@ -1,11 +1,14 @@
 ﻿namespace RoyNet.Game.Logic
 {
-    public class Bootstrapper
+    /// <summary>
+    /// GM
+    /// </summary>
+    public class GameManager
     {
         public GameServer Server { get; private set; }
-        public static Bootstrapper CreateBootstrapper(string address = null)
+        public static GameManager CreateGameManager(string address = null)
         {
-            Bootstrapper bs = new Bootstrapper();
+            GameManager bs = new GameManager();
             bs.Server = new GameServer(address ?? "tcp://127.0.0.1");
             return bs;
         }
