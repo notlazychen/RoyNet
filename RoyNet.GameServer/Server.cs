@@ -278,6 +278,16 @@ namespace RoyNet.GameServer
             IsRunning = false;
             Logger.Trace("game server stopped");
         }
+
+        /// <summary>
+        /// 查找符合条件的在线玩家(顺序遍历)
+        /// </summary>
+        /// <param name="selector"></param>
+        /// <returns></returns>
+        public Player FindOnLinePlayer(Func<Player,bool> selector)
+        {
+            return _allPlayers.Values.FirstOrDefault(selector);
+        }
     }
 
     public class RequestFactor
