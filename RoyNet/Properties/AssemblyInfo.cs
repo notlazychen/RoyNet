@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // 有关程序集的常规信息通过以下
 // 特性集控制。更改这些特性值可修改
 // 与程序集关联的信息。
-[assembly: AssemblyTitle("RoyNet.Launch")]
+[assembly: AssemblyTitle("RoyNet")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("RoyNet.Launch")]
+[assembly: AssemblyProduct("RoyNet")]
 [assembly: AssemblyCopyright("Copyright ©  2015")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // 如果此项目向 COM 公开，则下列 GUID 用于类型库的 ID
-[assembly: Guid("bddb35b7-46aa-4740-93cb-503d6c53e897")]
+[assembly: Guid("f1a5a443-6bb1-40a9-914b-73a0e7daa72d")]
 
 // 程序集的版本信息由下面四个值组成: 
 //

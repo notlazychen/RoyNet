@@ -10,11 +10,12 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using MiscUtil.Collections.Extensions;
 using MiscUtil.Conversion;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using ProtoBuf;
-using RoyNet.GameServer.Entity;
+using RoyNet.Server.GameEngine.Entity;
 
 namespace Client
 {
@@ -29,7 +30,7 @@ namespace Client
         {
             string username = textBoxUserName.Text;
             string password = textBoxPassword.Text;
-            WebRequest request = WebRequest.Create("http://123.56.119.97:8080/login/" + username+"/"+password);
+            WebRequest request = WebRequest.Create("http://127.0.0.1:2020/login/" + username+"/"+password);
             var response = request.GetResponse();
             var stream = response.GetResponseStream();
             if (stream != null  && stream.CanRead)
@@ -38,25 +39,25 @@ namespace Client
                 int length = stream.Read(buffer, 0, buffer.Length);
 
                 dynamic result = JObject.Parse(Encoding.UTF8.GetString(buffer, 0, length));
-                if (result.result == "OK")
+                if (result["result"].ToString() == "OK")
                 {
-                    textBoxOutput.Text = result.token;
+                    textBoxOutput.Text = result["token"].ToString();
                     List<Server> servers = new List<Server>();
-                    foreach (dynamic s in result.serverList)
-                    {
+                    //foreach (dynamic s in result.serverList)
+                    //{
                         servers.Add(new Server()
                         {
-                            DestID = s.destID,
-                            IP = s.iP,
-                            Name = s.name,
-                            Port = s.port
+                            //DestID = s.destID,
+                            IP = "127.0.0.1",
+                            Name = "测试",
+                            Port = 2021
                         });
-                    }
+                    //}
                     comboBoxServerList.DataSource = servers;
                 }
                 else
                 {
-                    MessageBox.Show(result.result.ToString());
+                    MessageBox.Show(result["result"].ToString());
                 }
             }
         }

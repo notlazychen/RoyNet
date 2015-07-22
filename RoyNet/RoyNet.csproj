@@ -4,16 +4,15 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{FFA248A3-3120-4030-BA1B-C10290FBE7EA}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <ProjectGuid>{2F01E2B4-1D49-4F70-972A-F90A947714EC}</ProjectGuid>
+    <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>RoyNet.Launch</RootNamespace>
-    <AssemblyName>RoyNet.Launch</AssemblyName>
+    <RootNamespace>RoyNet</RootNamespace>
+    <AssemblyName>RoyNet</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -23,7 +22,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -33,6 +31,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -41,19 +40,18 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Program.cs" />
+    <Compile Include="Config\ConfigurationElementCollection.cs" />
+    <Compile Include="Config\ConfigurationExtension.cs" />
+    <Compile Include="Config\IServerConfig.cs" />
+    <Compile Include="Config\ServerType.cs" />
+    <Compile Include="Config\ServerTypeCollection.cs" />
+    <Compile Include="ServerBase.cs" />
+    <Compile Include="Launcher.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\RoyNet\RoyNet.csproj">
-      <Project>{2f01e2b4-1d49-4f70-972a-f90a947714ec}</Project>
-      <Name>RoyNet</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="App.config">
-      <SubType>Designer</SubType>
-    </None>
+    <Compile Include="RoyNetConfiguration.cs" />
+    <Compile Include="Config\ServerConfigCollection.cs" />
+    <Compile Include="Config\ServerConfig.cs" />
+    <Compile Include="Util\TaskThread.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
