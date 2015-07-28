@@ -16,6 +16,7 @@ namespace RoyNet.Server.GameEngine.Logic.Login
         public override void OnExecute(AppServer server, Player player, G2G_ToGameDisconnect msg)
         {
             player.SetLogout();
+            server.Logger.Trace("玩家[{0}]退出,原因:{1}", player.UserName, msg.Reason);
         }
     }
 }

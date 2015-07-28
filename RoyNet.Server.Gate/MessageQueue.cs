@@ -2,92 +2,147 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using log4net.Repository.Hierarchy;
 using MiscUtil.Conversion;
-using NetMQ;
-using NetMQ.Sockets;
 using RoyNet.Util;
 using SuperSocket.SocketBase.Logging;
 
 namespace RoyNet.Server.Gate
 {
-    class MessageQueue
+    class MessageQueue:IDisposable
     {
-        public MessageQueue(MessageQueueConfig config, NetMQContext mqContext, ILog logger, IDictionary<long, PlayerSession> sessionDIc)
+        private const int DefaultBufferSize = 1024;
+        public MessageQueue(MessageQueueConfig config, ILog logger, IDictionary<long, PlayerSession> sessionDIc)
         {
             _sessionDicRef = sessionDIc;
             _logger = logger;
             Port = config.Port;
             Name = config.Name;
-            Consumers = config.Customers.Cast<Consumer>().ToList();
+            AllowedIPs = config.AllowedIPArray.Split(new []{','}, StringSplitOptions.RemoveEmptyEntries).ToList();
+            _listener = new TcpListener(IPAddress.Any, Port); 
             _thread = new TaskThread(Name, OnReceived);
-            _pullSocket = mqContext.CreatePullSocket();
-            _pushSocket = mqContext.CreatePushSocket();
+            _buffer = new byte[DefaultBufferSize];
         }
 
         private readonly IDictionary<long, PlayerSession> _sessionDicRef;
         private readonly ILog _logger;
-        private readonly PullSocket _pullSocket;
-        private readonly PushSocket _pushSocket;
-        private readonly TaskThread _thread;
+        private readonly TcpListener _listener;
+        private Socket _socket;
+        private TaskThread _thread;
 
         public string Name { get; private set; }
         public int Port { get; private set; }
-        public IEnumerable<Consumer> Consumers { get; private set; }
+        private IList<string> AllowedIPs{ get; set; }
+
+        private byte[] _buffer;
 
         private void OnReceived()
         {
             try
             {
-                if (!_pullSocket.HasIn)
-                    return;
-                byte[] data = _pullSocket.Receive();
-                var converter = EndianBitConverter.Big;
-                int offset = 0;
-                int userCount = converter.ToInt32(data, offset);
-                offset += 4;
-                var sessions = new List<PlayerSession>();
-                if (userCount == 0)
+                if (_socket == null)
                 {
-                    //群发
-                    sessions.AddRange(_sessionDicRef.Values);
-                }
-                else
-                {
-                    for (int i = 0; i < userCount; i++)
+                    var socket = _listener.AcceptSocket();
+                    var address = socket.RemoteEndPoint as IPEndPoint;
+                    if (socket.AddressFamily == AddressFamily.InterNetwork
+                        && address != null
+                        && (AllowedIPs.Count == 0 || AllowedIPs.Any(ip => ip == address.Address.ToString())))
                     {
-                        long netHandle = converter.ToInt64(data, offset);
-                        offset += 8;
-                        sessions.Add(_sessionDicRef[netHandle]);
+                        _socket = socket;
+                    }
+                    else
+                    {
+                        _logger.WarnFormat("一个不允许的IP<{0}>尝试作为游戏服连接网关", address);
+                        return;
                     }
                 }
-                var package = new ArraySegment<byte>(data, offset, data.Length - offset);
-                foreach (PlayerSession session in sessions)
+
+                var buffer = _buffer;
+                int size = _socket.Receive(_buffer);
+                int totalSize = size;
+                int offsetCpyed = 0;
+                while (totalSize == _buffer.Length)
                 {
-                    session.Send(package);
+                    var oldData = buffer;
+                    buffer = new byte[buffer.Length * 2];
+                    Buffer.BlockCopy(oldData, 0, buffer, 0, totalSize);
+                    offsetCpyed += size;
+
+                    size = _socket.Receive(buffer, offsetCpyed, buffer.Length - offsetCpyed, SocketFlags.Truncated);
+                    totalSize += size;
+                    _buffer = buffer;
+                }
+
+                //拆包
+                int offset = 0;
+                var converter = EndianBitConverter.Big;
+
+                while (offset < totalSize)
+                {
+                    int userCount = converter.ToInt32(buffer, offset);
+                    offset += 4;
+                    var sessions = new List<PlayerSession>();
+                    if (userCount == 0)
+                    {
+                        //群发
+                        sessions.AddRange(_sessionDicRef.Values);
+                    }
+                    else
+                    {
+                        for (int i = 0; i < userCount; i++)
+                        {
+                            long netHandle = converter.ToInt64(buffer, offset);
+                            offset += 8;
+                            sessions.Add(_sessionDicRef[netHandle]);
+                        }
+                    }
+
+                    int packetSize = converter.ToInt16(buffer, offset);
+                    var package = new ArraySegment<byte>(buffer, offset, packetSize + 2);
+                    offset += 2 + packetSize;
+                    foreach (PlayerSession session in sessions)
+                    {
+                        session.Send(package);
+                    }
                 }
             }
             catch (Exception ex)
             {
                 _logger.Error(ex.Message + Environment.NewLine + ex.StackTrace);
+                if (_socket != null)
+                {
+                    _socket.Close();
+                    _socket = null;
+                }
             }
         }
 
-        public void Connect()
-        {
-            foreach (Consumer consumer in Consumers)
-            {
-                string sendAddress = string.Format("tcp://{0}:{1}", consumer.IP, consumer.Port);
-                _pushSocket.Connect(sendAddress);
-            }
-        }
+        //private void BeginWaitForGameServer()
+        //{
+        //    _listener.BeginAcceptSocket((p) =>
+        //    {
+        //        var socket = _listener.EndAcceptSocket(p);
+        //        var address = socket.RemoteEndPoint as IPEndPoint;
+        //        if (socket.AddressFamily == AddressFamily.InterNetwork && address != null &&
+        //            AllowedIPs.Any(ip => ip == address.Address.ToString()))
+        //        {
+        //            _socket = socket;
+        //            _thread = new TaskThread(Name, OnReceived);
+        //            _thread.Start();
+        //        }
+        //        else
+        //        {
+        //            BeginWaitForGameServer();
+        //        }
+        //    }, null);
+        //}
 
         public void StartListening()
         {
-            string listenAddr = string.Format("tcp://*:{0}", Port);
-            _pullSocket.Bind(listenAddr);
+            _listener.Start();
             _thread.Start();
         }
 
@@ -101,14 +156,18 @@ namespace RoyNet.Server.Gate
             converter.CopyBytes((ushort)data.Length, sendData, offset);
             offset += 2;
             Buffer.BlockCopy(data, 0, sendData, offset, data.Length);
-            _pushSocket.Send(sendData);
+
+            _socket.Send(sendData);
         }
 
         public void Close()
         {
-            _pullSocket.Close();
-            _pushSocket.Close();
             _thread.Stop();
+        }
+
+        public void Dispose()
+        {
+            Close();
         }
     }
 }

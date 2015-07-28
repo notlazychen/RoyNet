@@ -8,8 +8,13 @@ namespace RoyNet
 {
     public abstract class ServerBase : MarshalByRefObject
     {
+        public string Name { get; private set; }
+        public IServerConfig Config;
+
         public void Configure(IServerConfig config)
         {
+            Name = config.Name;
+            Config = config;
             OnConfigure(config);
         }
 

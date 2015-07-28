@@ -11,9 +11,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using MiscUtil.Conversion;
-using NetMQ;
-using NetMQ.Sockets;
-using NetMQ.zmq;
 using ProtoBuf;
 using RoyNet.Server.GameEngine;
 using RoyNet.Server.GameEngine.Logic.Login;
@@ -25,9 +22,11 @@ namespace RoyNet.Server.GameEngine
     public class AppServer : ServerBase, IDisposable
     {
         public static AppServer Current { get; private set; }
-        private readonly NetMQContext _netMqContext;
-        private readonly PullSocket _pullSocket;
-        private readonly PushSocket _pushSocket;
+        private readonly TcpClient _client2Gate;
+        private NetworkStream _stream;
+        public string GateServerIP { get; private set; }
+        public int GateServerPort { get; private set; }
+
         private readonly TaskThread _mainThread;
         private readonly TaskThread _sendThread;
         private readonly TaskThread _receThread;
@@ -55,9 +54,7 @@ namespace RoyNet.Server.GameEngine
             _mainThread = new TaskThread("执行", MainLoop);
             _sendThread = new TaskThread("发送", OnSend);
             _receThread = new TaskThread("接收", OnReceive);
-            _netMqContext = NetMQContext.Create();
-            _pullSocket = _netMqContext.CreatePullSocket();
-            _pushSocket = _netMqContext.CreatePushSocket();
+            _client2Gate = new TcpClient();
             Current = this;
         }
 
@@ -88,8 +85,13 @@ namespace RoyNet.Server.GameEngine
                 IMessageEntity msg;
                 if (_msgsWaiting.TryDequeue(out msg))
                 {
+                    if (!_client2Gate.Connected)
+                    {
+                        _client2Gate.Connect(GateServerIP, GateServerPort);
+                        _stream = _client2Gate.GetStream();
+                    }
                     byte[] data = msg.Serialize();
-                    _pushSocket.Send(data);
+                    _stream.Write(data, 0, data.Length);
                 }
             }
             catch (Exception ex)
@@ -98,51 +100,80 @@ namespace RoyNet.Server.GameEngine
             }
         }
 
+        private byte[] _buffer = new byte[DefaultBufferSize];
+        private const int DefaultBufferSize = 1024;
+
         void OnReceive()
         {
             try
             {
-                if (!_pullSocket.HasIn)
+                if (!_client2Gate.Connected)
                 {
-                    return;
+                    _client2Gate.Connect(GateServerIP, GateServerPort);
+                    _stream = _client2Gate.GetStream();
                 }
-                byte[] data = _pullSocket.Receive();
+
+                var buffer = _buffer;
+                int size = _stream.Read(_buffer, 0, _buffer.Length);
+                int totalSize = size;
+                int offsetCpyed = 0;
+                while (totalSize == _buffer.Length)
+                {
+                    var oldData = buffer;
+                    buffer = new byte[buffer.Length * 2];
+                    Buffer.BlockCopy(oldData, 0, buffer, 0, totalSize);
+                    offsetCpyed += size;
+
+                    size = _stream.Read(buffer, offsetCpyed, buffer.Length - offsetCpyed);
+                    totalSize += size;
+                    _buffer = buffer;
+                }
+                //拆包
+
                 int offset = 0;
                 var converter = EndianBitConverter.Big;
-                long netHandle = converter.ToInt64(data, offset);
-                offset += 8;
-                int length = converter.ToUInt16(data, offset);
-                offset += 2;
-                int cmdName = converter.ToInt32(data, offset);
-                offset += 4;
-                RequestFactor factor;
-                if (_commands.TryGetValue(cmdName.ToString("D"), out factor))
+
+                while (offset < totalSize)
                 {
-                    var stream = new MemoryStream();
-                    try
+                    long netHandle = converter.ToInt64(buffer, offset);
+                    offset += 8;
+                    int length = converter.ToUInt16(buffer, offset);
+                    offset += 2;
+                    int cmdName = converter.ToInt32(buffer, offset);
+                    offset += 4;
+                    RequestFactor factor;
+                    if (_commands.TryGetValue(cmdName.ToString("D"), out factor))
                     {
-                        stream.Write(data, offset, length - 4);
-                        stream.Position = 0;
-                        var package = factor.CreatePackageMethod.Invoke(null, new object[] { stream });
-                        _actionsWaiting.Enqueue(new Tuple<long, CommandBase, object>(netHandle, factor.Command, package));
-                        stream.Dispose();
+                        var stream = new MemoryStream();
+                        try
+                        {
+                            stream.Write(buffer, offset, length - 4);
+                            offset += length - 4;
+                            stream.Position = 0;
+                            var package = factor.CreatePackageMethod.Invoke(null, new object[] {stream});
+                            _actionsWaiting.Enqueue(new Tuple<long, CommandBase, object>(netHandle, factor.Command,
+                                package));
+                            stream.Dispose();
+                        }
+                        catch (ProtoException ex)
+                        {
+                            stream.Dispose();
+                            //协议错误，考虑要不要断开客户端
+                            Logger.Debug("unknow request:{0} from {1}", cmdName.ToString("D"), netHandle);
+                        }
                     }
-                    catch (ProtoException ex)
+                    else
                     {
-                        stream.Dispose();
-                        //协议错误，考虑要不要断开
+                        //不认识的协议，考虑要不要断开客户端
                         Logger.Debug("unknow request:{0} from {1}", cmdName.ToString("D"), netHandle);
                     }
-                }
-                else
-                {
-                    //不认识的协议，考虑要不要断开
-                    Logger.Debug("unknow request:{0} from {1}", cmdName.ToString("D"), netHandle);
                 }
             }
             catch (Exception ex)
             {
                 Logger.Fatal(ex);
+                _stream.Close();
+                _client2Gate.Close();
             }
         }
 
@@ -165,7 +196,7 @@ namespace RoyNet.Server.GameEngine
                     Player p;
                     if (tuple.Item2.Name == CMD_G2G.ToGameConnect.ToString("D"))
                     {
-                        p = new Player(tuple.Item1);
+                        p = new Player(tuple.Item1, this);
                         if (_allPlayers.ContainsKey(tuple.Item1))
                         {
                             _allPlayers[tuple.Item1].Kickout();//顶号
@@ -242,12 +273,8 @@ namespace RoyNet.Server.GameEngine
             Logger.Trace("************************");
             Logger.Trace("game server is starting");
 
-            int port = int.Parse(config.Options["port"]);
-            string gateServerIP = config.Options["gateServerIP"];
-            string gateServerPort = config.Options["gateServerPort"];
-            PullAddress = string.Format("tcp://*:{0}", port);
-            PushAddress = string.Format("tcp://{0}:{1}", gateServerIP, gateServerPort);
-            _pullSocket.Bind(PullAddress);
+            GateServerIP = config.Options["gateServerIP"];
+            GateServerPort = int.Parse(config.Options["gateServerPort"]);
 
             List<CommandBase> commands = new List<CommandBase>()
             {
@@ -275,7 +302,6 @@ namespace RoyNet.Server.GameEngine
 
         protected override void OnStart()
         {
-            _pushSocket.Connect(PushAddress);
             _mainThread.Start();
             _sendThread.Start();
             _receThread.Start();
@@ -297,11 +323,9 @@ namespace RoyNet.Server.GameEngine
             _sendThread.Stop();
             _receThread.Stop();
 
-            //_pullSocket.Unbind(PullAddress);
-            _pullSocket.Dispose();
-            //_pushSocket.Disconnect(PushAddress);
-            _pushSocket.Dispose();
-            _netMqContext.Dispose();
+            _stream.Dispose();
+            _client2Gate.Close();
+
             IsRunning = false;
             Logger.Trace("game server stopped");
         }

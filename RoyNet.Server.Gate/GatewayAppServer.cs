@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using MiscUtil.Conversion;
-using NetMQ;
 using ProtoBuf;
 using RoyNet.Server.Gate.Entity;
 using SuperSocket.SocketBase;
@@ -14,15 +13,12 @@ namespace RoyNet.Server.Gate
 {
     public class GatewayAppServer : AppServer<PlayerSession, BinaryRequestInfo>
     {
-        private readonly NetMQContext _netMqContext;
-
         private List<MessageQueue> _messageQueues = new List<MessageQueue>();
         public readonly ConcurrentDictionary<long, PlayerSession> ManagedSessionByNetHandle = new ConcurrentDictionary<long, PlayerSession>();
         
         public string LoginServerUrl { get; private set; }
         public GatewayAppServer(): base(new GatewayReceiveFilterFactory()) // 7 parts but 8 separators
         {
-            _netMqContext = NetMQContext.Create();
         }
 
         protected override bool Setup(IRootConfig rootConfig, SuperSocket.SocketBase.Config.IServerConfig config)
@@ -32,7 +28,7 @@ namespace RoyNet.Server.Gate
 
             foreach (MessageQueueConfig mqConfig in mqs)
             {
-                _messageQueues.Add(new MessageQueue(mqConfig, _netMqContext, Logger, ManagedSessionByNetHandle));
+                _messageQueues.Add(new MessageQueue(mqConfig, Logger, ManagedSessionByNetHandle));
             }
 
             foreach (MessageQueue mq in _messageQueues)
@@ -45,10 +41,10 @@ namespace RoyNet.Server.Gate
         
         public override bool Start()
         {
-            foreach (MessageQueue mq in _messageQueues)
-            {
-                mq.Connect();
-            }
+            //foreach (MessageQueue mq in _messageQueues)
+            //{
+            //    mq.Connect();
+            //}
             return base.Start();
         }
 
@@ -70,7 +66,6 @@ namespace RoyNet.Server.Gate
             {
                 mq.Close();
             }
-            _netMqContext.Dispose();
         }
 
         protected override void OnSessionClosed(PlayerSession session, CloseReason reason)

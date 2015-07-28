@@ -11,41 +11,6 @@ namespace RoyNet.Server.Login
         {
             Port = int.Parse(config.Options["port"]);
         }
-        //private List<GameServer> _gameServers;
-        //public IEnumerable<GameServer> GameServers
-        //{
-        //    get
-        //    {
-        //        if (_gameServers == null)
-        //        {
-        //            _gameServers = new List<GameServer>();
-        //            foreach (GameServerElement server in GameServerElements)
-        //            {
-        //                _gameServers.Add(new GameServer()
-        //                {
-        //                    DestID = server.DestID,
-        //                    IP = server.IP,
-        //                    Name = server.Name,
-        //                    Port = server.Port
-        //                });
-        //            }
-        //        }
-        //        return _gameServers;
-        //    }
-        //}
-
-        //[ConfigurationProperty("gameServers")]
-        //public GameServerElements GameServerElements
-        //{
-        //    get
-        //    {
-        //        return this["gameServers"] as GameServerElements;
-        //    }
-        //    set
-        //    {
-        //        this["gameServers"] = value;
-        //    }
-        //}
     }
 
     public class GameServer

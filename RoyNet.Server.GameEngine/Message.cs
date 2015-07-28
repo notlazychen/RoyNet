@@ -50,13 +50,13 @@ namespace RoyNet.Server.GameEngine
                 Serializer.Serialize(stream, Entity);
                 buffEntity = stream.ToArray();
             }
-            var entityLen = buffEntity.Length;
+            int entityLen = buffEntity.Length;
 
             var converter = EndianBitConverter.Big;
             int userscount = 0;
             if (_netHandles != null)
                 userscount = _netHandles.Length;
-            var data = new byte[4 + userscount*4 + 2 + 4 + buffEntity.Length];
+            var data = new byte[4 + userscount*8 + 2 + 4 + buffEntity.Length];
             var offset = 0;
             //首先是头
             converter.CopyBytes(userscount, data, 0);
@@ -82,8 +82,8 @@ namespace RoyNet.Server.GameEngine
          * 返回客户端报文格式：
          * 4字节指向客户端数量（在网关处卸掉）
          * 根据客户端数量取走头(在网关处卸掉)x8long
-         * 4字节CommandID
          * 2字节Body长度
+         * 4字节CommandID
          * Body（proto-buf）
          */
     }

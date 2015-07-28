@@ -40,6 +40,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AppDomainServer.cs" />
     <Compile Include="Config\ConfigurationElementCollection.cs" />
     <Compile Include="Config\ConfigurationExtension.cs" />
     <Compile Include="Config\IServerConfig.cs" />

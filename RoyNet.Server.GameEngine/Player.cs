@@ -13,9 +13,10 @@ namespace RoyNet.Server.GameEngine
         public readonly long NetHandle;
         public string UserName { get; private set; }
 
-        public Player(long netHandle)
+        public Player(long netHandle, AppServer gameServer)
         {
             NetHandle = netHandle;
+            GameServer = gameServer;
         }
 
         public void SetLogin(string username)

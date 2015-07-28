@@ -26,41 +26,23 @@ namespace RoyNet.Server.Gate
             }
         }
 
-        [ConfigurationProperty("consumers", IsRequired = true)]
-        public ConfigurationElementCollection<Consumer> Customers
+        [ConfigurationProperty("dest", IsRequired = true)]
+        public int Dest
         {
-            get { return (ConfigurationElementCollection<Consumer>)this["consumers"]; }
-        }
-    }
-
-    class Consumer: ConfigurationElement, INamedConfig
-    {
-        [ConfigurationProperty("name", IsRequired = true)]
-        public string Name
-        {
-            get
-            {
-                return this["name"] as string;
-            }
-        }
-        
-        [ConfigurationProperty("ip", IsRequired = true)]
-        public string IP
-        {
-            get
-            {
-                return this["ip"] as string;
-            }
+            get { return (int)this["dest"]; }
         }
 
-        [ConfigurationProperty("port", IsRequired = true)]
-        public int Port
+        [ConfigurationProperty("allowedIPArray", IsRequired = false)]
+        public string AllowedIPArray
         {
-            get
-            {
-                return (int)this["port"];
-            }
+            get { return (string)this["allowedIPArray"]; }
         }
+
+        //[ConfigurationProperty("maxBufferSize", IsRequired = false)]
+        //public int MaxBufferSize
+        //{
+        //    get { return (int) this["maxBufferSize"]; }
+        //}
     }
 
 }
