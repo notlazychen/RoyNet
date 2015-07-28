@@ -3,9 +3,10 @@
 More Information:
 http://ifchen.com/
 
-## RoyNet是一个简单的游戏服务器。
+## RoyNet是一个TCP长连接的游戏服务器。
 
-最终目的是能够运行一个简单的MMORPG游戏。你可以通过地址来获取它的源码。
+解决方案中包含一个聊天示例和一个Client的项目作为客户端的访问示例。
+聊天示例在ChatModule中，作为模块开发的示例，ChatModule.ChatCommand中有消息接收和群发回复、定点回复的示例。
 
 主要使用到的类库有：
 
@@ -21,7 +22,7 @@ Server.GameEngine 主要是游戏逻辑服务器传输层代码
 
 Server.Game 引用了Server.GameEngine，是书写业务逻辑的地方
 
-解决方案中包含了一个Client的项目，作为客户端的访问示例。还有一个ChatModule作为模块开发的示例，ChatModule.ChatCommand中有消息接收和群发回复、定点回复的示例。
+
 
 ## 创建和启动一组服务器
 
@@ -30,7 +31,9 @@ Server.Game 引用了Server.GameEngine，是书写业务逻辑的地方
 上述三个Login、Gate、Game合称一组服务器，其核心3个类库Server.Login\Server.Gate\Server.Game中都有一个继承自ServerBase的类型。启动一个服务器，你只需要在Main函数中创建改类型的实例并调用Configure()、Startup()方法即可。关闭的时候调用Stop()方法。
 
 你也可以使用解决方案中包含的Launcher项目生成的Launcher.exe，将所有配置都包含到royNet配置节点中，使用它将通过配置中的内容反射生成服务器实例，并将服务器一并启动。所以请将引用到的所有类库都放置到同目录下。
+
 通过Launcher启动的服务器之间是应用程序域隔离的。
+
 启动后可以通过指令关闭或重启指定的服务器。
 
 具体可以直接看Launcher.Test，不过它添加了所有解决方案中的一用，是个测试用项目，方便VS调试。是个很好的示例。
