@@ -56,7 +56,7 @@ namespace RoyNet.Server.GameEngine
             int userscount = 0;
             if (_netHandles != null)
                 userscount = _netHandles.Length;
-            var data = new byte[4 + userscount*8 + 2 + 4 + buffEntity.Length];
+            var data = new byte[4 + userscount * 8 + 2 + 4 + buffEntity.Length];
             var offset = 0;
             //首先是头
             converter.CopyBytes(userscount, data, 0);
@@ -72,6 +72,7 @@ namespace RoyNet.Server.GameEngine
 
             //然后是Body
             converter.CopyBytes((ushort)(entityLen + 4), data, offset);
+
             offset += 2;
             converter.CopyBytes(CommandID, data, offset);
             offset += 4;

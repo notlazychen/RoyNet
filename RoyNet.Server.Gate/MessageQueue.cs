@@ -14,7 +14,7 @@ namespace RoyNet.Server.Gate
 {
     class MessageQueue:IDisposable
     {
-        private const int DefaultBufferSize = 1024;
+        private const int DefaultBufferSize = 2;
         public MessageQueue(MessageQueueConfig config, ILog logger, IDictionary<long, PlayerSession> sessionDIc)
         {
             _sessionDicRef = sessionDIc;
@@ -27,7 +27,7 @@ namespace RoyNet.Server.Gate
             _buffer = new byte[DefaultBufferSize];
         }
 
-        private readonly IDictionary<long, PlayerSession> _sessionDicRef;
+        private IDictionary<long, PlayerSession> _sessionDicRef { get; set; }
         private readonly ILog _logger;
         private readonly TcpListener _listener;
         private Socket _socket;
@@ -71,7 +71,7 @@ namespace RoyNet.Server.Gate
                     Buffer.BlockCopy(oldData, 0, buffer, 0, totalSize);
                     offsetCpyed += size;
 
-                    size = _socket.Receive(buffer, offsetCpyed, buffer.Length - offsetCpyed, SocketFlags.Truncated);
+                    size = _socket.Receive(buffer, offsetCpyed, buffer.Length - offsetCpyed, SocketFlags.Partial);
                     totalSize += size;
                     _buffer = buffer;
                 }
@@ -96,13 +96,18 @@ namespace RoyNet.Server.Gate
                         {
                             long netHandle = converter.ToInt64(buffer, offset);
                             offset += 8;
-                            sessions.Add(_sessionDicRef[netHandle]);
+                            PlayerSession session;
+                            if (_sessionDicRef.TryGetValue(netHandle, out session))
+                            {
+                                sessions.Add(session);
+                            }
                         }
                     }
 
                     int packetSize = converter.ToInt16(buffer, offset);
                     var package = new ArraySegment<byte>(buffer, offset, packetSize + 2);
                     offset += 2 + packetSize;
+
                     foreach (PlayerSession session in sessions)
                     {
                         session.Send(package);

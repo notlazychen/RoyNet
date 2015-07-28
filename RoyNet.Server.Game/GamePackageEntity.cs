@@ -15,8 +15,8 @@ namespace RoyNet.Server.GameEngine.Entity
     public partial class Chat_Send : global::ProtoBuf.IExtensible
     {
       public Chat_Send() {}
-      
-    private string _Text;
+
+      private string _Text;
     [global::ProtoBuf.ProtoMember(1, IsRequired = true, Name=@"Text", DataFormat = global::ProtoBuf.DataFormat.Default)]
     public string Text
     {

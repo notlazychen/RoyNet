@@ -65,7 +65,7 @@ namespace Client
         //2个没啥用，1个指定服务器，1个gatecmd，2个length，4个gamecmd
         void Rece(NetworkStream stream)
         {
-            byte[] recedata = new byte[1024];
+            byte[] recedata = new byte[102400];
             stream.BeginRead(recedata, 0, recedata.Length, (a) =>
             {
                 int receLength = stream.EndRead(a);
@@ -83,7 +83,7 @@ namespace Client
                 {
                     var converter = EndianBitConverter.Big;
                     int offset = 0;
-                    while (offset < receLength + 2)
+                    while (offset < receLength)
                     {
                         int length = converter.ToInt16(recedata, offset);
                         offset += 2;
@@ -96,7 +96,7 @@ namespace Client
                             var package = Serializer.Deserialize<Chat_Send>(receMs);
 
                             Log(package.Text);
-                            offset += length;
+                            offset += (length - 4);
                         }
                     }
                     Rece(stream);

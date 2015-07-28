@@ -14,8 +14,8 @@ namespace RoyNet.Server.Game.Chat
         {
             //一个群发示例
             server.BroadcastAll((int)CMD_Chat.Send, new Chat_Send()
-            {
-                Text = string.Format("玩家{0}说：{1}", player.UserName, msg.Text)
+            { 
+                Text = msg.Text//string.Format("玩家{0}说：{1}", player.UserName, msg.Text)
             });
 
             //一个指定发送的示例
