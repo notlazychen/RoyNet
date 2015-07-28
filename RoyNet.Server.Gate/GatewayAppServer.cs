@@ -71,7 +71,8 @@ namespace RoyNet.Server.Gate
         protected override void OnSessionClosed(PlayerSession session, CloseReason reason)
         {
             base.OnSessionClosed(session, reason);
-
+            if (!session.IsLogin)
+                return;
             var package = new G2G_ToGameDisconnect()
             {
                 Reason = reason.ToString()
@@ -87,10 +88,7 @@ namespace RoyNet.Server.Gate
                 converter.CopyBytes((int)CMD_G2G.ToGameDisconnect, sendData, 0);
                 Buffer.BlockCopy(packageData, 0, sendData, 4, packageData.Length);
                 
-                foreach (MessageQueue mq in _messageQueues)
-                {
-                    mq.Push(session, sendData);
-                }
+                Push2GameServer(session, sendData);
             }
 
             PlayerSession savedSession;

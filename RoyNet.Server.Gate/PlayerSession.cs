@@ -24,6 +24,7 @@ namespace RoyNet.Server.Gate
 
         private long _netHandle;
         private bool _isLogin;
+        private GatewayAppServer _server;
 
         public long NetHandle
         {
@@ -31,7 +32,11 @@ namespace RoyNet.Server.Gate
         }
         public string UID { get; private set; }
 
-        public new GatewayAppServer Server { get; private set; }
+        public GatewayAppServer Server
+        {
+            get { return _server?? AppServer as GatewayAppServer; }
+            private set { _server = value; }
+        }
 
         protected override void OnSessionStarted()
         {

@@ -14,7 +14,7 @@ namespace RoyNet.Server.Gate
 {
     class MessageQueue:IDisposable
     {
-        private const int DefaultBufferSize = 2;
+        private const int DefaultBufferSize = 102400;
         public MessageQueue(MessageQueueConfig config, ILog logger, IDictionary<long, PlayerSession> sessionDIc)
         {
             _sessionDicRef = sessionDIc;
@@ -37,7 +37,8 @@ namespace RoyNet.Server.Gate
         public int Port { get; private set; }
         private IList<string> AllowedIPs{ get; set; }
 
-        private byte[] _buffer;
+        private readonly byte[] _buffer;
+        private int _offset = 0;
 
         private void OnReceived()
         {
@@ -55,35 +56,28 @@ namespace RoyNet.Server.Gate
                     }
                     else
                     {
-                        _logger.WarnFormat("一个不允许的IP<{0}>尝试作为游戏服连接网关", address);
+                        _logger.WarnFormat("一个不允许的IP[{0}]尝试作为游戏服连接网关", address);
                         return;
                     }
                 }
 
-                var buffer = _buffer;
-                int size = _socket.Receive(_buffer);
-                int totalSize = size;
-                int offsetCpyed = 0;
-                while (totalSize == _buffer.Length)
-                {
-                    var oldData = buffer;
-                    buffer = new byte[buffer.Length * 2];
-                    Buffer.BlockCopy(oldData, 0, buffer, 0, totalSize);
-                    offsetCpyed += size;
-
-                    size = _socket.Receive(buffer, offsetCpyed, buffer.Length - offsetCpyed, SocketFlags.Partial);
-                    totalSize += size;
-                    _buffer = buffer;
-                }
-
+                int size = _socket.Receive(_buffer, _offset, _buffer.Length - _offset, SocketFlags.Partial) + _offset;
+                _offset = 0;
                 //拆包
-                int offset = 0;
                 var converter = EndianBitConverter.Big;
-
-                while (offset < totalSize)
+                while (true)
                 {
-                    int userCount = converter.ToInt32(buffer, offset);
-                    offset += 4;
+                    int leftLength = size - _offset;
+                    if (leftLength < 4 || leftLength < converter.ToInt32(_buffer, _offset))
+                    {
+                        //不够了
+                        Buffer.BlockCopy(_buffer, _offset, _buffer, 0, leftLength);
+                        _offset = leftLength;
+                        break;
+                    }
+                    _offset += 4;
+                    int userCount = converter.ToInt32(_buffer, _offset);
+                    _offset += 4;
                     var sessions = new List<PlayerSession>();
                     if (userCount == 0)
                     {
@@ -94,8 +88,8 @@ namespace RoyNet.Server.Gate
                     {
                         for (int i = 0; i < userCount; i++)
                         {
-                            long netHandle = converter.ToInt64(buffer, offset);
-                            offset += 8;
+                            long netHandle = converter.ToInt64(_buffer, _offset);
+                            _offset += 8;
                             PlayerSession session;
                             if (_sessionDicRef.TryGetValue(netHandle, out session))
                             {
@@ -104,9 +98,9 @@ namespace RoyNet.Server.Gate
                         }
                     }
 
-                    int packetSize = converter.ToInt16(buffer, offset);
-                    var package = new ArraySegment<byte>(buffer, offset, packetSize + 2);
-                    offset += 2 + packetSize;
+                    int packetSize = converter.ToInt16(_buffer, _offset);
+                    var package = new ArraySegment<byte>(_buffer, _offset, packetSize + 2);
+                    _offset += (2 + packetSize);
 
                     foreach (PlayerSession session in sessions)
                     {
@@ -162,7 +156,8 @@ namespace RoyNet.Server.Gate
             offset += 2;
             Buffer.BlockCopy(data, 0, sendData, offset, data.Length);
 
-            _socket.Send(sendData);
+            if(_socket != null)
+                _socket.Send(sendData);
         }
 
         public void Close()

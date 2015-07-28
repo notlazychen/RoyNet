@@ -56,10 +56,16 @@ namespace RoyNet.Server.GameEngine
             int userscount = 0;
             if (_netHandles != null)
                 userscount = _netHandles.Length;
-            var data = new byte[4 + userscount * 8 + 2 + 4 + buffEntity.Length];
+
+            int totalSize = 4 + 4 + userscount * 8 + 2 + 4 + entityLen;
+            var data = new byte[totalSize];
             var offset = 0;
             //首先是头
-            converter.CopyBytes(userscount, data, 0);
+            converter.CopyBytes(totalSize, data, offset);//第一节火箭
+            offset += 4;
+
+
+            converter.CopyBytes(userscount, data, offset);
             offset += 4;
             if (_netHandles != null)
             {
@@ -71,16 +77,18 @@ namespace RoyNet.Server.GameEngine
             }
 
             //然后是Body
-            converter.CopyBytes((ushort)(entityLen + 4), data, offset);
+            converter.CopyBytes((ushort)(entityLen + 4), data, offset);//第二节火箭
 
             offset += 2;
             converter.CopyBytes(CommandID, data, offset);
             offset += 4;
             Buffer.BlockCopy(buffEntity, 0, data, offset, entityLen);
+            offset += entityLen;
             return data;
         }
         /*
          * 返回客户端报文格式：
+         * 4字节表示下面所有字节的长度（在网关处卸掉）
          * 4字节指向客户端数量（在网关处卸掉）
          * 根据客户端数量取走头(在网关处卸掉)x8long
          * 2字节Body长度

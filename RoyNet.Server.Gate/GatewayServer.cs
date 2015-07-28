@@ -19,7 +19,8 @@ namespace RoyNet.Server.Gate
                 Port = port,
                 KeepAliveTime = 10,
                 DisableSessionSnapshot = true,
-                SendTimeOut = 0
+                SendTimeOut = 0,
+                MaxConnectionNumber = 3000
             };
             serverConfig.OptionElements = config.OptionElements;
             serverConfig.Options = config.Options;

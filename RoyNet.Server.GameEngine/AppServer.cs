@@ -82,6 +82,12 @@ namespace RoyNet.Server.GameEngine
             try
             {
                 IMessageEntity msg;
+
+                if (_msgsWaiting.Count > 1000)
+                {
+                    Logger.Warning("发送队列已经积压超过1000条");
+                }
+
                 if (_msgsWaiting.TryDequeue(out msg))
                 {
                     byte[] data = msg.Serialize();
@@ -94,8 +100,9 @@ namespace RoyNet.Server.GameEngine
             }
         }
 
-        private byte[] _buffer = new byte[DefaultBufferSize];
+        private readonly byte[] _buffer = new byte[DefaultBufferSize];
         private const int DefaultBufferSize = 1024;
+        private int _offset = 0;
 
         void OnReceive()
         {
@@ -108,53 +115,54 @@ namespace RoyNet.Server.GameEngine
                     _stream = _client2Gate.GetStream();
                 }
 
-                var buffer = _buffer;
-                int size = _stream.Read(_buffer, 0, _buffer.Length);
-                int totalSize = size;
-                int offsetCpyed = 0;
-                while (totalSize == _buffer.Length)
-                {
-                    var oldData = buffer;
-                    buffer = new byte[buffer.Length * 2];
-                    Buffer.BlockCopy(oldData, 0, buffer, 0, totalSize);
-                    offsetCpyed += size;
-
-                    size = _stream.Read(buffer, offsetCpyed, buffer.Length - offsetCpyed);
-                    totalSize += size;
-                    _buffer = buffer;
-                }
+                int size = _stream.Read(_buffer, _offset, _buffer.Length - _offset) + _offset;
+                _offset = 0;
                 //拆包
-
-                int offset = 0;
                 var converter = EndianBitConverter.Big;
-
-                while (offset < totalSize)
+                while (true)
                 {
-                    long netHandle = converter.ToInt64(buffer, offset);
-                    offset += 8;
-                    int length = converter.ToUInt16(buffer, offset);
-                    offset += 2;
-                    int cmdName = converter.ToInt32(buffer, offset);
-                    offset += 4;
+                    int leftLength = size - _offset;
+                    if (leftLength < 10)
+                    {
+                        //不够
+                        Buffer.BlockCopy(_buffer, _offset, _buffer, 0, leftLength);
+                        _offset = leftLength;
+                        break;
+                    }
+                    long netHandle = converter.ToInt64(_buffer, _offset);
+                    int length = converter.ToUInt16(_buffer, _offset + 8);
+                    if (leftLength < length + 10)
+                    {
+                        //还是不够
+                        Buffer.BlockCopy(_buffer, _offset, _buffer, 0, leftLength);
+                        _offset = leftLength;
+                        break;
+                    }
+                    _offset += 8;
+                    _offset += 2;
+                    int cmdName = converter.ToInt32(_buffer, _offset);
+                    _offset += 4;
                     RequestFactor factor;
                     if (_commands.TryGetValue(cmdName.ToString("D"), out factor))
                     {
                         var stream = new MemoryStream();
                         try
                         {
-                            stream.Write(buffer, offset, length - 4);
-                            offset += length - 4;
+                            stream.Write(_buffer, _offset, length - 4);
+                            _offset += length - 4;
                             stream.Position = 0;
                             var package = factor.CreatePackageMethod.Invoke(null, new object[] {stream});
                             _actionsWaiting.Enqueue(new Tuple<long, CommandBase, object>(netHandle, factor.Command,
                                 package));
-                            stream.Dispose();
                         }
-                        catch (ProtoException ex)
+                        catch (ProtoException)
                         {
-                            stream.Dispose();
                             //协议错误，考虑要不要断开客户端
                             Logger.Debug("unknow request:{0} from {1}", cmdName.ToString("D"), netHandle);
+                        }
+                        finally
+                        {
+                            stream.Dispose();
                         }
                     }
                     else
@@ -168,7 +176,8 @@ namespace RoyNet.Server.GameEngine
             {
                 Logger.Fatal(ex);
                 _stream.Close();
-                _client2Gate.Close();
+                if (_client2Gate != null) 
+                    _client2Gate.Close();
                 _client2Gate = null;
             }
         }
@@ -198,16 +207,22 @@ namespace RoyNet.Server.GameEngine
                             _allPlayers[tuple.Item1].Kickout();//顶号
                         }
                         _allPlayers[tuple.Item1] = p;
-                    } else 
-                    if (tuple.Item2.Name == CMD_G2G.ToGameDisconnect.ToString("D"))
-                    {
-                        p = _allPlayers[tuple.Item1];
-                        _allPlayers.Remove(tuple.Item1);
-                    } else
-                    {
-                        p = _allPlayers[tuple.Item1];
                     }
-                    tuple.Item2.Execute(this, p, tuple.Item3);
+                    else if (tuple.Item2.Name == CMD_G2G.ToGameDisconnect.ToString("D"))
+                    {
+                        if (_allPlayers.TryGetValue(tuple.Item1, out p))
+                        {
+                            _allPlayers.Remove(tuple.Item1);
+                        }
+                    } 
+                    else
+                    {
+                        //p = _allPlayers[tuple.Item1];//有可能已经移除
+                        _allPlayers.TryGetValue(tuple.Item1, out p);
+                    }
+
+                    if(p != null)
+                        tuple.Item2.Execute(this, p, tuple.Item3);
                 }
                 OnMainLoop(_allPlayers.Values);
             }

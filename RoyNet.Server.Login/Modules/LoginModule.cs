@@ -11,17 +11,17 @@ namespace RoyNet.Server.Login
         {
             Get["/login/{uname}/{pwd}"] = p =>
             {
-                Console.WriteLine("{0},{1} want login", p["uname"], p["pwd"]);
                 using (var conn = ConnectionProvider.Connection)
                 {
-                    string uid = conn.Query<string>("select uid from Account where username=@username and password=md5(@password)", new
+                    //string uid = conn.Query<string>("select uid from Account where username=@username and password=md5(@password)", new
+                    //{
+                    //    username = p["uname"],
+                    //    password = p["pwd"]
+                    //}).FirstOrDefault();
+                    //if (uid != null)
+                    if(true)
                     {
-                        username = p["uname"],
-                        password = p["pwd"]
-                    }).FirstOrDefault();
-                    if (uid != null)
-                    {
-                        string token = TokenManager.CreateToken(uid);
+                        string token = TokenManager.CreateToken(p["uname"]);
                         return Response.AsJson(new { Result = "OK", Token = token });//, ServerList = LoginServer.Config.GameServers
                     }
                     else
