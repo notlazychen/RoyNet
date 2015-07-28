@@ -22,7 +22,7 @@ namespace RoyNet.Server.GameEngine
     public class AppServer : ServerBase, IDisposable
     {
         public static AppServer Current { get; private set; }
-        private readonly TcpClient _client2Gate;
+        private TcpClient _client2Gate;
         private NetworkStream _stream;
         public string GateServerIP { get; private set; }
         public int GateServerPort { get; private set; }
@@ -54,7 +54,6 @@ namespace RoyNet.Server.GameEngine
             _mainThread = new TaskThread("执行", MainLoop);
             _sendThread = new TaskThread("发送", OnSend);
             _receThread = new TaskThread("接收", OnReceive);
-            _client2Gate = new TcpClient();
             Current = this;
         }
 
@@ -85,11 +84,6 @@ namespace RoyNet.Server.GameEngine
                 IMessageEntity msg;
                 if (_msgsWaiting.TryDequeue(out msg))
                 {
-                    if (!_client2Gate.Connected)
-                    {
-                        _client2Gate.Connect(GateServerIP, GateServerPort);
-                        _stream = _client2Gate.GetStream();
-                    }
                     byte[] data = msg.Serialize();
                     _stream.Write(data, 0, data.Length);
                 }
@@ -107,8 +101,9 @@ namespace RoyNet.Server.GameEngine
         {
             try
             {
-                if (!_client2Gate.Connected)
+                if (_client2Gate == null || !_client2Gate.Connected)
                 {
+                    _client2Gate = new TcpClient();
                     _client2Gate.Connect(GateServerIP, GateServerPort);
                     _stream = _client2Gate.GetStream();
                 }
@@ -174,6 +169,7 @@ namespace RoyNet.Server.GameEngine
                 Logger.Fatal(ex);
                 _stream.Close();
                 _client2Gate.Close();
+                _client2Gate = null;
             }
         }
 
