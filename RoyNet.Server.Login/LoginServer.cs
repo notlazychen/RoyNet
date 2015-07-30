@@ -40,7 +40,11 @@ namespace RoyNet.Server.Login
             var ips = GetIP();
             var uris = ips.Select(ip => new Uri("http://" + ip + ":" + Config.Port)).ToList();
             uris.Add(new Uri("http://127.0.0.1:" + Config.Port));
-            Host = new NancyHost(uris.ToArray());
+            HostConfiguration hostConfigs = new HostConfiguration()
+            {
+                UrlReservations = new UrlReservations() { CreateAutomatically = true }
+            };
+            Host = new NancyHost(hostConfigs, uris.ToArray());
             Host.Start();
         }
 
