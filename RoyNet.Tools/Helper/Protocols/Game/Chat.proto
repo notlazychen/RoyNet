@@ -1,8 +1,0 @@
-enum CMD_Chat {
-	Send				= 0x10000000;
-}
-
-//双向, 发送消息
-message Chat_Send {
-	required string Text = 1;
-}
