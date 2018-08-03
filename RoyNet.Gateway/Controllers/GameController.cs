@@ -6,10 +6,12 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
+using AdventureGrainInterfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Orleans;
 using RoyNet.Common;
 using RoyNet.Gateway.Models;
 
@@ -20,22 +22,15 @@ namespace RoyNet.Gateway.Controllers
         IConfiguration _configuration { get; }
         ILogger<GameController> _logger { get; set; }
         IHttpClientFactory _httpClientFactory;
+        IClusterClient _client;
 
-        public GameController(IConfiguration configuration, ILogger<GameController> logger, IHttpClientFactory httpClientFactory)
+        public GameController(IConfiguration configuration, ILogger<GameController> logger,
+            IHttpClientFactory httpClientFactory, IClusterClient client)
         {
             _configuration = configuration;
             _logger = logger;
             _httpClientFactory = httpClientFactory;
-        }
-
-        public IActionResult Babel()
-        {
-            string domain = _configuration["urls"];
-            string appid = _configuration.GetValue<string>("WeAppId");
-            string redirect_uri = $"{domain}/game/babel";
-            redirect_uri = HttpUtility.UrlEncode(redirect_uri);
-            string url = $"https://open.weixin.qq.com/connect/oauth2/authorize?redirect_uri={redirect_uri}&appid={appid}&response_type=code&scope=snsapi_userinfo&state=1#wechat_redirect";
-            return Redirect(url);
+            _client = client;
         }
 
         public IActionResult Token(string signature, string timestamp, string nonce, string echostr)
@@ -100,6 +95,54 @@ namespace RoyNet.Gateway.Controllers
                 }
             }
             return Json(new { Status = 0, Msg = $"微信绑定失败" });
+        }
+
+        public IActionResult Babel()
+        {
+            //string domain = _configuration["urls"];
+            //string appid = _configuration.GetValue<string>("WeAppId");
+            //string redirect_uri = $"{domain}/game/babel";
+            //redirect_uri = HttpUtility.UrlEncode(redirect_uri);
+            //string url = $"https://open.weixin.qq.com/connect/oauth2/authorize?redirect_uri={redirect_uri}&appid={appid}&response_type=code&scope=snsapi_userinfo&state=1#wechat_redirect";
+            //return Redirect(url);
+            return View();
+        }
+
+        public async Task<ContentResult> BabelInput(string text)
+        {
+            var playerId = Guid.NewGuid();
+            string result = "";
+            var player = _client.GetGrain<IPlayerGrain>(playerId);
+            string name = await player.Name();
+            if (name == null)
+            {
+                await player.SetName(text);
+            }
+            else
+            {
+
+                var room1 = _client.GetGrain<IRoomGrain>(0);
+                player.SetRoomGrain(room1).Wait();
+
+                Console.WriteLine(player.Play("look").Result);
+
+                result = "Start";
+
+                try
+                {
+                    while (result != "")
+                    {
+                        string command = Console.ReadLine();
+                        result = await player.Play(command);
+                    }
+                }
+                finally
+                {
+                    player.Die().Wait();
+                    result = "Game over!";
+                }
+            }
+            return Content(result);
         }
     }
 

@@ -37,19 +37,21 @@ namespace RoyNet.Gateway
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
             services.AddHttpClient();
 
-            var client = new ClientBuilder()
-                .UseLocalhostClustering()
-                .Configure<ClusterOptions>(options =>
-                {
-                    options.ClusterId = "dev";
-                    options.ServiceId = "AdventureApp";
-                })
-                .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(IRoomGrain).Assembly).WithReferences())
-                .Build();
+            services.AddSingleton<IClusterClient>(provider=> 
+            {
+                var client = new ClientBuilder()
+                    .UseLocalhostClustering()
+                    .Configure<ClusterOptions>(options =>
+                    {
+                        options.ClusterId = "dev";
+                        options.ServiceId = "AdventureApp";
+                    })
+                    .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(IRoomGrain).Assembly).WithReferences())
+                    .Build();
 
-            client.Connect().Wait();
-            client.get
-
+                client.Connect().Wait();
+                return client;
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
