@@ -12,6 +12,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Orleans;
 using Orleans.Configuration;
+using Rabbit.WeiXin.Handlers;
+using Rabbit.WeiXin.Handlers.Impl;
 
 namespace RoyNet.Gateway
 {
@@ -33,7 +35,7 @@ namespace RoyNet.Gateway
             //    options.CheckConsentNeeded = context => true;
             //    options.MinimumSameSitePolicy = SameSiteMode.None;
             //});
-
+            services.Configure<WechatConfig>(Configuration.GetSection("Wechat"));
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
             services.AddHttpClient();
 
@@ -52,6 +54,21 @@ namespace RoyNet.Gateway
                 client.Connect().Wait();
                 return client;
             });
+
+
+            services.AddScoped<IWeiXinHandler>(provider => {
+                IHandlerBuilder builder = new HandlerBuilder();
+                builder
+                    //.Use<SignatureCheckHandlerMiddleware>() //验证签名中间件。
+                    .Use<CreateRequestMessageHandlerMiddleware>() //创建消息中间件（内置消息解密逻辑）。
+                    .Use<SessionSupportHandlerMiddleware>() //会话支持中间件。
+                    .Use<IgnoreRepeatMessageHandlerMiddleware>() //忽略重复的消息中间件。
+                    .Use<WeMessageHandlerMiddleware>(provider.GetService<IClusterClient>()) //测试消息处理中间件。
+                    .Use<GenerateResponseXmlHandlerMiddleware>(); //生成相应XML处理中间件（内置消息加密逻辑）。            
+                    //.Use<AgentHandlerMiddleware>(new AgentRequestModel(new Uri("http://localhost:22479/Mutual")));
+                IWeiXinHandler weiXinHandler = new DefaultWeiXinHandler(builder);
+                return weiXinHandler;
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -64,10 +81,10 @@ namespace RoyNet.Gateway
             else
             {
                 app.UseExceptionHandler("/Home/Error");
-                app.UseHsts();
+                //app.UseHsts();
             }
 
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseCookiePolicy();
 

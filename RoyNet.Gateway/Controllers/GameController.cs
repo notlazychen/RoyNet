@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -10,8 +11,14 @@ using AdventureGrainInterfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Orleans;
+using Rabbit.WeiXin;
+using Rabbit.WeiXin.DependencyInjection;
+using Rabbit.WeiXin.Handlers;
+using Rabbit.WeiXin.Handlers.Impl;
+using Rabbit.WeiXin.MvcExtension.Results;
 using RoyNet.Common;
 using RoyNet.Gateway.Models;
 
@@ -19,54 +26,91 @@ namespace RoyNet.Gateway.Controllers
 {
     public class GameController : Controller
     {
-        IConfiguration _configuration { get; }
         ILogger<GameController> _logger { get; set; }
         IHttpClientFactory _httpClientFactory;
         IClusterClient _client;
+        WechatConfig _wechatConfig;
+        IWeiXinHandler _weiXinHandler;
+        //ISignatureService _signatureService;
 
-        public GameController(IConfiguration configuration, ILogger<GameController> logger,
+        public GameController(ILogger<GameController> logger,
+            //ISignatureService signatureService,
+            IWeiXinHandler weiXinHandler,
+            IOptions<WechatConfig> options, 
             IHttpClientFactory httpClientFactory, IClusterClient client)
         {
-            _configuration = configuration;
+            //_signatureService = signatureService;
+            _weiXinHandler = weiXinHandler;
+            _wechatConfig = options.Value;
             _logger = logger;
             _httpClientFactory = httpClientFactory;
             _client = client;
         }
 
-        public IActionResult Token(string signature, string timestamp, string nonce, string echostr)
+        [HttpGet]
+        public IActionResult Index(string signature, string timestamp, string nonce, string echostr)
         {
-            string token = _configuration.GetValue<string>("WeChatToken");
-            //1）将token、timestamp、nonce三个参数进行字典序排序 
-            //2）将三个参数字符串拼接成一个字符串进行sha1加密
-            //3）开发者获得加密后的字符串可与signature对比，标识该请求来源于微信
-            var canshuarr = new List<string>();
-            canshuarr.Add(timestamp);
-            canshuarr.Add(nonce);
-            canshuarr.Add(token);
-            canshuarr.Sort();
-            var sb = new StringBuilder();
-            foreach (var canshu in canshuarr)
-            {
-                sb.Append(canshu);
-            }
-            string org = sb.ToString();
-            string des = SecurityUtils.SHA1(org);
-            if (string.Compare(des, signature, true) == 0)
-            {
+            var signatureService = DefaultDependencyResolver.Instance.GetService<ISignatureService>();
+            if (signatureService.Check(signature, timestamp, nonce, _wechatConfig.Token))
                 return Content(echostr);
-            }
-            else
+            
+            throw new Exception("非法请求。");
+
+            //string token = _wechatConfig.Token;
+            ////1）将token、timestamp、nonce三个参数进行字典序排序 
+            ////2）将三个参数字符串拼接成一个字符串进行sha1加密
+            ////3）开发者获得加密后的字符串可与signature对比，标识该请求来源于微信
+            //var canshuarr = new List<string>();
+            //canshuarr.Add(timestamp);
+            //canshuarr.Add(nonce);
+            //canshuarr.Add(token);
+            //canshuarr.Sort();
+            //var sb = new StringBuilder();
+            //foreach (var canshu in canshuarr)
+            //{
+            //    sb.Append(canshu);
+            //}
+            //string org = sb.ToString();
+            //string des = SecurityUtils.SHA1(org);
+            //if (string.Compare(des, signature, true) == 0)
+            //{
+            //    return Content(echostr);
+            //}
+            //else
+            //{
+            //    string msg = $"error: signature:{signature},timestamp:{timestamp},nonce:{nonce},echostr:{echostr} =>org:{org}||des:{des}";
+            //    _logger.LogDebug(msg);
+            //    return Content(msg);
+            //}
+        }
+
+        [HttpPost]
+        public IActionResult Index()
+        {
+
+            string content;
+            using (var reader = new StreamReader(Request.Body, Encoding.UTF8))
             {
-                string msg = $"error: signature:{signature},timestamp:{timestamp},nonce:{nonce},echostr:{echostr} =>org:{org}||des:{des}";
-                _logger.LogDebug(msg);
-                return Content(msg);
+                content = reader.ReadToEnd();
             }
+            Console.WriteLine(content);
+            var context = new HandlerContext(content);
+
+            //设置基本信息。
+            context.SetMessageHandlerBaseInfo(new MessageHandlerBaseInfo(
+                    _wechatConfig.AppId,
+                    _wechatConfig.AppSecret,
+                    _wechatConfig.Token));
+
+            _weiXinHandler.Execute(context);
+
+            return new WeiXinResult(context);
         }
 
         public async Task<IActionResult> Code(string code, string state)
         {
-            string appid = _configuration.GetValue<string>("WeAppId");
-            string appsecret = _configuration.GetValue<string>("WeAppSecret");
+            string appid = _wechatConfig.AppId;
+            string appsecret = _wechatConfig.AppSecret;
             string url = $"https://api.weixin.qq.com/";
             var client = _httpClientFactory.CreateClient();
             client.BaseAddress = new Uri(url);
@@ -81,10 +125,8 @@ namespace RoyNet.Gateway.Controllers
             {
                 return StatusCode(407);
             }
-
             string result2 = await client.GetStringAsync($"/sns/userinfo?access_token={jobj.access_token}&openid={jobj.openid}&lang=zh_CN");
             _logger.LogDebug($"微信UserInfo返回结果:{result2}");
-
             if (!string.IsNullOrEmpty(result2))
             {
                 var jsonUserInfo = JsonConvert.DeserializeObject<WeUserInfoJsonResult>(result2);
@@ -110,39 +152,32 @@ namespace RoyNet.Gateway.Controllers
 
         public async Task<ContentResult> BabelInput(string text)
         {
-            var playerId = Guid.NewGuid();
+            var playerId = Guid.NewGuid().ToString();
             string result = "";
             var player = _client.GetGrain<IPlayerGrain>(playerId);
             string name = await player.Name();
             if (name == null)
             {
                 await player.SetName(text);
+                var room1 = _client.GetGrain<IRoomGrain>(0);
+                player.SetRoomGrain(room1).Wait();
+                return Content("hello {0}, welcome to the advanture world! ", text);
             }
             else
             {
-
-                var room1 = _client.GetGrain<IRoomGrain>(0);
-                player.SetRoomGrain(room1).Wait();
-
-                Console.WriteLine(player.Play("look").Result);
-
-                result = "Start";
-
+                //return Content(player.Play("look").Result);                
                 try
                 {
-                    while (result != "")
-                    {
-                        string command = Console.ReadLine();
-                        result = await player.Play(command);
-                    }
+                    string command = text;
+                    result = await player.Play(command);
                 }
                 finally
                 {
                     player.Die().Wait();
                     result = "Game over!";
                 }
+                return Content(result);
             }
-            return Content(result);
         }
     }
 

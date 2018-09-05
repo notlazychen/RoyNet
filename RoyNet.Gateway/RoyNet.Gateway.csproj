@@ -8,11 +8,13 @@
     <PackageReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="2.1.1" />
     <PackageReference Include="Microsoft.Orleans.Client" Version="2.0.3" />
+    <PackageReference Include="Rabbit.WeiXin" Version="0.3.3" />
+    <PackageReference Include="Rabbit.WeiXin.MvcExtension" Version="0.3.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AdventureGrainInterfaces\AdventureGrainInterfaces.csproj" />
     <ProjectReference Include="..\RoyNet.Common\RoyNet.Common.csproj" />
+    <ProjectReference Include="..\RoyNet.GameGrainInterfaces\RoyNet.GameGrainInterfaces.csproj" />
   </ItemGroup>
 
   <ItemGroup>
